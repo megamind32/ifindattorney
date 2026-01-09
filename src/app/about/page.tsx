@@ -1,14 +1,14 @@
 export default function About() {
   return (
-    <main className="min-h-screen bg-white">
+    <main className="min-h-screen bg-white page-transition-enter">
       <section className="px-6 py-20">
         <div className="max-w-3xl mx-auto">
-          <h1 className="text-5xl font-bold font-[family-name:var(--font-khand)] mb-8">
+          <h1 className="text-5xl font-bold font-[family-name:var(--font-khand)] mb-8 content-transition">
             About iFind Attorney
           </h1>
 
-          <div className="space-y-8 font-[family-name:var(--font-inter)] text-lg leading-relaxed text-black/80">
-            <div>
+          <div className="space-y-8 font-[family-name:var(--font-inter)] text-lg leading-relaxed text-black/80 stagger-container">
+            <div className="content-transition">
               <h2 className="text-2xl font-bold font-[family-name:var(--font-khand)] mb-4">
                 Our Mission
               </h2>
@@ -18,7 +18,7 @@ export default function About() {
               </p>
             </div>
 
-            <div>
+            <div className="content-transition">
               <h2 className="text-2xl font-bold font-[family-name:var(--font-khand)] mb-4">
                 How It Works
               </h2>
@@ -38,7 +38,7 @@ export default function About() {
               </ol>
             </div>
 
-            <div>
+            <div className="content-transition">
               <h2 className="text-2xl font-bold font-[family-name:var(--font-khand)] mb-4">
                 Key Disclaimers
               </h2>

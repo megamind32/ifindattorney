@@ -1,15 +1,15 @@
 export default function Projects() {
   return (
-    <main className="min-h-screen bg-white">
+    <main className="min-h-screen bg-white page-transition-enter">
       <section className="px-6 py-20">
         <div className="max-w-3xl mx-auto">
-          <h1 className="text-5xl font-bold font-[family-name:var(--font-khand)] mb-8">
+          <h1 className="text-5xl font-bold font-[family-name:var(--font-khand)] mb-8 content-transition">
             Projects & Roadmap
           </h1>
 
-          <div className="space-y-12 font-[family-name:var(--font-inter)]">
+          <div className="space-y-12 font-[family-name:var(--font-inter)] stagger-container">
             {/* Current MVP */}
-            <div className="border-l-4 border-red-600 pl-6">
+            <div className="border-l-4 border-red-600 pl-6 content-transition">
               <h2 className="text-2xl font-bold font-[family-name:var(--font-khand)] mb-2">
                 MVP: Lawyer Discovery (Current)
               </h2>
@@ -32,7 +32,7 @@ export default function Projects() {
             </div>
 
             {/* Planned Expansions */}
-            <div className="border-l-4 border-black/20 pl-6">
+            <div className="border-l-4 border-black/20 pl-6 content-transition">
               <h2 className="text-2xl font-bold font-[family-name:var(--font-khand)] mb-2">
                 Planned Expansions (Future)
               </h2>

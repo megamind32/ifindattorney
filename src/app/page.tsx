@@ -1,226 +1,221 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 
-interface Message {
-  role: 'user' | 'assistant';
-  content: string;
-}
-
-interface LawyerClassification {
-  practiceArea: string;
-  urgency: 'low' | 'medium' | 'high';
-  budgetSensitivity: 'low' | 'medium' | 'high';
-  locationHint: string;
-}
+const backgroundImages = [
+  '/benyamin-bohlouli-LpEyM8nksws-unsplash.jpg',
+  '/erik-mclean-24ZOFLNY4hA-unsplash.jpg',
+  '/mateus-campos-felipe-n4CLHNL5n6Y-unsplash.jpg',
+  '/prestige law firm.jpg',
+  '/sanlam-allianz.jpg',
+  '/supremelaw.jpg',
+];
 
 export default function Home() {
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      role: 'assistant',
-      content: `Hello! I'm here to help you find the right lawyer for your legal needs in Lagos. 
-
-Please describe your legal situation in your own words. For example: "I need help with employment law" or "I'm involved in a property dispute."
-
-Note: I'm not a lawyer and cannot provide legal advice. I'm here to match you with appropriate attorneys.`,
-    },
-  ]);
-  const [input, setInput] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [classification, setClassification] = useState<LawyerClassification | null>(null);
-  const [showNewsletter, setShowNewsletter] = useState(false);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
+  const router = useRouter();
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [fadeIn, setFadeIn] = useState(true);
 
   useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
+    const interval = setInterval(() => {
+      setFadeIn(false);
+      setTimeout(() => {
+        setCurrentImageIndex((prev) => (prev + 1) % backgroundImages.length);
+        setFadeIn(true);
+      }, 500);
+    }, 15000);
+    return () => clearInterval(interval);
+  }, []);
 
-  const handleSendMessage = async () => {
-    if (!input.trim()) return;
+  const handleFindLawyer = () => {
+    router.push('/form');
+  };
 
-    const userMessage = input;
-    setInput('');
-    setLoading(true);
+  const handleVerifyLawyer = () => {
+    router.push('/verify-lawyer');
+  };
 
-    // Add user message to chat
-    setMessages((prev) => [...prev, { role: 'user', content: userMessage }]);
-
-    try {
-      // Call AI classification API
-      const response = await fetch('/api/classify-intake', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userInput: userMessage, conversationHistory: messages }),
-      });
-
-      const data = await response.json();
-
-      if (data.classification) {
-        setClassification(data.classification);
-      }
-
-      // Add assistant response
-      setMessages((prev) => [...prev, { role: 'assistant', content: data.response }]);
-    } catch (error) {
-      console.error('Error:', error);
-      setMessages((prev) => [
-        ...prev,
-        {
-          role: 'assistant',
-          content: 'Sorry, I encountered an error. Please try again.',
-        },
-      ]);
-    } finally {
-      setLoading(false);
-    }
+  const handleCheckFees = () => {
+    router.push('/lawyer-fees');
   };
 
   return (
-    <main className="min-h-screen bg-white">
-      {/* Hero Section */}
-      <section className="px-6 py-20">
-        <div className="max-w-4xl mx-auto text-center">
-          <h1 className="text-5xl md:text-6xl font-bold font-[family-name:var(--font-khand)] mb-4">
-            Find Your Attorney
+    <main className="min-h-screen bg-white page-transition-enter">
+      {/* Top Quarter - Rotating Image Section with Unique Shape and Overlapping Heading */}
+      <section className="relative w-full h-80 sm:h-96 overflow-hidden bg-gray-900 shadow-lg" style={{ clipPath: 'polygon(0 0, 100% 0, 100% 85%, 0 100%)' }}>
+        <div className="absolute inset-0">
+          <img
+            src={backgroundImages[currentImageIndex]}
+            alt="Background"
+            className={`w-full h-full object-cover transition-opacity duration-500 ${
+              fadeIn ? 'opacity-70' : 'opacity-0'
+            }`}
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/30" />
+        </div>
+
+        {/* Welcome Heading - Direct Overlap Without Container */}
+        <div className="absolute inset-0 flex flex-col items-center justify-center px-4 content-transition">
+          <h1 className="text-3xl sm:text-5xl md:text-6xl font-bold font-[family-name:var(--font-playfair)] text-white mb-4 leading-tight max-w-4xl text-center italic" 
+              style={{ letterSpacing: '0.02em', textShadow: '0 6px 20px rgba(0,0,0,0.6), 0 2px 8px rgba(0,0,0,0.5)', fontWeight: 700 }}>
+            Welcome to <span className="text-transparent bg-clip-text bg-gradient-to-r from-red-300 via-red-200 to-pink-300">IfindAttorney</span>
           </h1>
-          <p className="text-lg text-black/70 font-[family-name:var(--font-inter)] max-w-2xl mx-auto">
-            AI-powered recommendations to connect you with the right lawyer for your legal needs in Lagos.
+          <p className="text-sm sm:text-lg text-white/95 font-[family-name:var(--font-poppins)] leading-relaxed mb-4 font-medium max-w-2xl text-center" 
+             style={{ textShadow: '0 4px 12px rgba(0,0,0,0.6)' }}>
+            Your one stop tool for finding the most suitable firm for you
+          </p>
+          <p className="text-xs sm:text-base text-red-200 font-[family-name:var(--font-poppins)] italic font-light tracking-wide" 
+             style={{ textShadow: '0 3px 10px rgba(0,0,0,0.5)' }}>
+            Your clarity is our concern
+          </p>
+        </div>
+
+        {/* Image Counter - Unique Style */}
+        <div className="absolute bottom-6 right-6 bg-red-600/80 backdrop-blur-sm text-white px-4 py-2 rounded-l-full font-bold text-xs shadow-lg transform hover:scale-110 transition">
+          {currentImageIndex + 1} / {backgroundImages.length}
+        </div>
+      </section>
+
+      {/* Main Content */}
+      <section className="px-4 sm:px-6 py-12 max-w-5xl mx-auto">
+        {/* Feature Cards Intro - Stylish Heading */}
+        <div className="mb-16 content-transition">
+          <div className="relative inline-block">
+            <h2 className="text-3xl sm:text-4xl font-bold font-[family-name:var(--font-playfair)] text-gray-900"
+                style={{ letterSpacing: '0.02em' }}>
+              Get started with any of our
+              <span className="block text-transparent bg-clip-text bg-gradient-to-r from-red-600 to-red-500 mt-2">
+                free to use tool
+              </span>
+            </h2>
+            <div className="absolute -bottom-2 left-0 h-1 bg-gradient-to-r from-red-600 to-transparent w-24" />
+          </div>
+        </div>
+
+        {/* Feature Cards - Unique Asymmetric Design */}
+        <div className="space-y-6 content-transition">
+          {/* Card 1: Find a Lawyer - Sharp Left */}
+          <div className="card-sharp-left bg-white border-2 border-red-200 p-6 sm:p-8 shadow-lg hover:shadow-xl transition group cursor-pointer" 
+               onClick={handleFindLawyer}
+               style={{ borderRadius: '0 28px 28px 0' }}>
+            <div className="flex items-start gap-5 pl-2">
+              <div className="icon-container-unique flex-shrink-0 mt-1">
+                <svg className="h-6 w-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              </div>
+              <div className="flex-1">
+                <h3 className="text-2xl sm:text-3xl font-bold font-[family-name:var(--font-playfair)] text-gray-900 mb-3" style={{ letterSpacing: '0.01em' }}>
+                  Find Your Lawyer
+                </h3>
+                <p className="text-sm sm:text-base text-gray-700 font-[family-name:var(--font-inter)] leading-relaxed mb-5">
+                  Let's find you the perfect lawyer to suit your needs anywhere in Nigeria. Just tell us your legal issue and your location. We'll give you a list of available firms to suit your needs ASAP.
+                </p>
+                <button
+                  onClick={handleFindLawyer}
+                  className="inline-flex items-center gap-2 text-red-600 font-bold text-sm hover:translate-x-1 transition"
+                >
+                  Get Started <span className="text-lg">→</span>
+                </button>
+              </div>
+              <div className="hidden sm:block text-6xl text-red-100 group-hover:text-red-200 transition">🔍</div>
+            </div>
+          </div>
+
+          {/* Card 2: Verify Lawyer - Sharp Right */}
+          <div className="card-sharp-right bg-gradient-to-br from-white to-red-50 border-2 border-red-200 p-6 shadow-lg hover:shadow-xl transition group cursor-pointer"
+               onClick={handleVerifyLawyer}
+               style={{ borderRadius: '28px 0 0 28px' }}>
+            <div className="flex items-start gap-5 pr-2">
+              <div className="hidden sm:block text-6xl text-red-100 group-hover:text-red-200 transition">✓</div>
+              <div className="flex-1">
+                <h3 className="text-lg font-bold font-[family-name:var(--font-khand)] text-gray-900 mb-1">
+                  Verify Credentials
+                </h3>
+                <p className="text-sm text-gray-600 font-[family-name:var(--font-inter)] mb-4">
+                  Check if your lawyer is registered with the Nigerian Bar Association database.
+                </p>
+                <button
+                  onClick={handleVerifyLawyer}
+                  className="inline-flex items-center gap-2 text-red-600 font-bold text-sm hover:translate-x-1 transition"
+                >
+                  Verify <span className="text-lg">→</span>
+                </button>
+              </div>
+              <div className="icon-container-unique flex-shrink-0">
+                <svg className="h-6 w-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 12l2 2 4-4m7 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+            </div>
+          </div>
+
+          {/* Card 3: Know Expected Fees - Sharp Left */}
+          <div className="card-sharp-left bg-white border-2 border-red-200 p-6 shadow-lg hover:shadow-xl transition group cursor-pointer"
+               onClick={handleCheckFees}
+               style={{ borderRadius: '0 28px 28px 0' }}>
+            <div className="flex items-start gap-5 pl-2">
+              <div className="icon-container-unique flex-shrink-0">
+                <svg className="h-6 w-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <div className="flex-1">
+                <h3 className="text-lg font-bold font-[family-name:var(--font-khand)] text-gray-900 mb-1">
+                  Know Fair Fees
+                </h3>
+                <p className="text-sm text-gray-600 font-[family-name:var(--font-inter)] mb-4">
+                  Transparent minimum rates across states & service types. No surprises.
+                </p>
+                <button
+                  onClick={handleCheckFees}
+                  className="inline-flex items-center gap-2 text-red-600 font-bold text-sm hover:translate-x-1 transition"
+                >
+                  Explore Rates <span className="text-lg">→</span>
+                </button>
+              </div>
+              <div className="hidden sm:block text-6xl text-red-100 group-hover:text-red-200 transition">💰</div>
+            </div>
+          </div>
+        </div>
+
+        {/* Why Use Section - Unique Style */}
+        <div className="mt-16 pt-12 border-t-4 border-dashed border-red-200 content-transition">
+          <h2 className="text-2xl sm:text-3xl font-bold font-[family-name:var(--font-khand)] text-gray-900 mb-1">
+            Why Trust iFind<span className="text-red-600">?</span>
+          </h2>
+          <p className="text-gray-600 text-sm mb-6 font-[family-name:var(--font-inter)]">Everything a Nigerian needs for legal clarity</p>
+          
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <div className="text-center">
+              <div className="text-3xl mb-2">⚡</div>
+              <p className="text-xs font-bold text-gray-900 font-[family-name:var(--font-khand)]">Quick Match</p>
+            </div>
+            <div className="text-center">
+              <div className="text-3xl mb-2">🛡️</div>
+              <p className="text-xs font-bold text-gray-900 font-[family-name:var(--font-khand)]">Verified</p>
+            </div>
+            <div className="text-center">
+              <div className="text-3xl mb-2">💯</div>
+              <p className="text-xs font-bold text-gray-900 font-[family-name:var(--font-khand)]">Fair Rates</p>
+            </div>
+            <div className="text-center">
+              <div className="text-3xl mb-2">🇳🇬</div>
+              <p className="text-xs font-bold text-gray-900 font-[family-name:var(--font-khand)]">Lagos First</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Disclaimer */}
+        <div className="mt-12 p-5 bg-red-50 border-l-4 border-red-600 rounded-r-2xl text-xs text-gray-700 font-[family-name:var(--font-inter)] content-transition">
+          <p>
+            <strong className="text-red-700">⚖️ Important:</strong> This platform matches you with lawyers—we don't provide legal advice. Always discuss directly with your attorney.
           </p>
         </div>
       </section>
 
-      {/* Chat Interface */}
-      <section className="px-6 py-10">
-        <div className="max-w-3xl mx-auto">
-          <div className="border border-black/20 rounded-lg bg-white shadow-sm">
-            {/* Chat Messages */}
-            <div className="h-96 overflow-y-auto p-6 space-y-6 bg-white">
-              {messages.map((msg, idx) => (
-                <div
-                  key={idx}
-                  className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
-                >
-                  <div
-                    className={`max-w-xs lg:max-w-md px-4 py-3 rounded-lg font-[family-name:var(--font-inter)] text-sm leading-relaxed font-semibold ${
-                      msg.role === 'user'
-                        ? 'bg-gray-200 text-black border border-black/20'
-                        : 'bg-gray-100 text-black border border-black/10'
-                    }`}
-                  >
-                    {msg.content}
-                  </div>
-                </div>
-              ))}
-              {loading && (
-                <div className="flex justify-start">
-                  <div className="bg-gray-100 text-black border border-black/10 px-4 py-3 rounded-lg">
-                    <span className="inline-block animate-pulse">●</span>
-                  </div>
-                </div>
-              )}
-              <div ref={messagesEndRef} />
-            </div>
-
-            {/* Input Area */}
-            <div className="border-t border-black/10 p-6 flex gap-2">
-              <input
-                type="text"
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && !loading && handleSendMessage()}
-                placeholder="Describe your legal situation..."
-                disabled={loading}
-                className="flex-1 px-4 py-2 border border-black/20 rounded-lg font-[family-name:var(--font-inter)] focus:outline-none focus:border-black/50 disabled:bg-gray-50"
-              />
-              <button
-                onClick={handleSendMessage}
-                disabled={loading || !input.trim()}
-                className="px-6 py-2 bg-red-600 text-white rounded-lg font-[family-name:var(--font-inter)] font-bold hover:bg-red-700 disabled:bg-gray-400 transition"
-              >
-                Send
-              </button>
-            </div>
-          </div>
-
-          {/* Classification Result */}
-          {classification && (
-            <div className="mt-8 p-6 border-2 border-red-600 rounded-lg bg-red-50">
-              <h3 className="text-lg font-bold font-[family-name:var(--font-khand)] mb-4">
-                Based on your input:
-              </h3>
-              <div className="space-y-3 font-[family-name:var(--font-inter)] text-sm">
-                <p>
-                  <strong>Practice Area:</strong> {classification.practiceArea}
-                </p>
-                <p>
-                  <strong>Urgency:</strong> {classification.urgency.charAt(0).toUpperCase() + classification.urgency.slice(1)}
-                </p>
-                <p>
-                  <strong>Budget Sensitivity:</strong> {classification.budgetSensitivity.charAt(0).toUpperCase() + classification.budgetSensitivity.slice(1)}
-                </p>
-                <button
-                  onClick={() => setShowNewsletter(true)}
-                  className="mt-4 px-6 py-2 bg-black text-white rounded-lg hover:bg-gray-800 transition"
-                >
-                  Get Recommendations
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
-      </section>
-
-      {/* Newsletter Section */}
-      {!showNewsletter && (
-        <section className="px-6 py-20 bg-black/5">
-          <div className="max-w-2xl mx-auto text-center">
-            <h2 className="text-3xl font-bold font-[family-name:var(--font-khand)] mb-4">
-              Stay Updated
-            </h2>
-            <p className="text-black/70 font-[family-name:var(--font-inter)] mb-8">
-              Get updates about new lawyers and features as we grow in Lagos.
-            </p>
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                setShowNewsletter(true);
-              }}
-              className="flex gap-2 max-w-md mx-auto"
-            >
-              <input
-                type="email"
-                placeholder="your@email.com"
-                required
-                className="flex-1 px-4 py-3 border border-black/20 rounded-lg font-[family-name:var(--font-inter)] focus:outline-none focus:border-black/50"
-              />
-              <button
-                type="submit"
-                className="px-6 py-3 bg-red-600 text-white rounded-lg font-[family-name:var(--font-inter)] font-bold hover:bg-red-700 transition"
-              >
-                Subscribe
-              </button>
-            </form>
-          </div>
-        </section>
-      )}
-
-      {showNewsletter && (
-        <section className="px-6 py-20 bg-black/5">
-          <div className="max-w-2xl mx-auto text-center">
-            <div className="text-4xl mb-4">✓</div>
-            <h2 className="text-2xl font-bold font-[family-name:var(--font-khand)] mb-4">
-              Thank You!
-            </h2>
-            <p className="text-black/70 font-[family-name:var(--font-inter)]">
-              You're subscribed to updates. We'll notify you soon with lawyer recommendations based on your needs.
-            </p>
-          </div>
-        </section>
-      )}
+      <div className="h-12" />
     </main>
   );
 }
