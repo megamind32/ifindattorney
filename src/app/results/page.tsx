@@ -140,7 +140,36 @@ function ResultsPageContent() {
         const formData = JSON.parse(formDataStr);
         console.log('DEBUG: Parsed form data:', formData);
 
-        // Call the AI Agent to search Google Maps for law firms
+        // Check if agent results are already included (from form submission)
+        if (formData.agentResults) {
+          console.log('DEBUG: Using agent results from form submission');
+          const agentResponse = formData.agentResults;
+          
+          // Transform agent results to display format
+          const transformedResults: ResultsData = {
+            success: agentResponse.success,
+            state: agentResponse.state,
+            lga: agentResponse.lga,
+            practiceArea: formData.practiceAreas?.[0] || 'General Legal Services',
+            selectedPracticeAreas: formData.practiceAreas || [],
+            budget: formData.budget,
+            legalIssue: formData.legalIssue,
+            totalRecommendations: agentResponse.firmsFound,
+            results: agentResponse.results || [],
+            source: agentResponse.source || 'AI Agent - Google Maps',
+            message: agentResponse.message,
+            matchingStrategy: `AI Agent Search Results - ${agentResponse.firmsFound} firms found`,
+            guaranteedResults: true,
+            resultsFound: agentResponse.firmsFound,
+          };
+
+          setResults(transformedResults);
+          sessionStorage.removeItem('userFormData');
+          setLoading(false);
+          return;
+        }
+
+        // Otherwise call the AI Agent to search Google Maps for law firms
         console.log('DEBUG: Triggering AI Agent to search Google Maps with:', formData);
         const response = await fetch('/api/search-lawyers-agent', {
           method: 'POST',
@@ -153,12 +182,28 @@ function ResultsPageContent() {
           throw new Error('Failed to fetch lawyers');
         }
 
-        const data: ResultsData = await response.json();
-        console.log('DEBUG: API Response received:', data);
-        console.log('DEBUG: exactMatches:', data.exactMatches);
-        console.log('DEBUG: alternatives:', data.alternatives);
-        console.log('DEBUG: recommendations:', data.recommendations);
-        setResults(data);
+        const agentData = await response.json();
+        console.log('DEBUG: Agent API Response received:', agentData);
+
+        // Transform agent results to display format
+        const transformedResults: ResultsData = {
+          success: agentData.success,
+          state: agentData.state,
+          lga: agentData.lga,
+          practiceArea: formData.practiceAreas?.[0] || 'General Legal Services',
+          selectedPracticeAreas: formData.practiceAreas || [],
+          budget: formData.budget,
+          legalIssue: formData.legalIssue,
+          totalRecommendations: agentData.firmsFound,
+          results: agentData.results || [],
+          source: agentData.source || 'AI Agent - Google Maps',
+          message: agentData.message,
+          matchingStrategy: `AI Agent Search Results - ${agentData.firmsFound} firms found`,
+          guaranteedResults: true,
+          resultsFound: agentData.firmsFound,
+        };
+
+        setResults(transformedResults);
 
         // Clear session storage after successful fetch
         sessionStorage.removeItem('userFormData');
@@ -353,18 +398,18 @@ function ResultsPageContent() {
           )}
 
           {/* Info Notes */}
-          {results.exactMatchesFound > 0 && results.alternativesFound > 0 && (
+          {(results.exactMatchesFound ?? 0) > 0 && (results.alternativesFound ?? 0) > 0 && (
             <div className="bg-blue-50 border-l-4 border-blue-600 p-4 rounded mb-8">
               <p className="text-sm text-blue-700 font-[family-name:var(--font-inter)]">
-                <strong>Alternative Options:</strong> In addition to your exact matches, we found {results.alternativesFound} additional firm{results.alternativesFound !== 1 ? 's' : ''} nearby or with similar expertise that may also suit your needs.
+                <strong>Alternative Options:</strong> In addition to your exact matches, we found {results.alternativesFound} additional firm{(results.alternativesFound ?? 1) !== 1 ? 's' : ''} nearby or with similar expertise that may also suit your needs.
               </p>
             </div>
           )}
 
-          {results.exactMatchesFound === 0 && results.alternativesFound > 0 && (
+          {(results.exactMatchesFound ?? 0) === 0 && (results.alternativesFound ?? 0) > 0 && (
             <div className="bg-amber-50 border-l-4 border-amber-600 p-4 rounded mb-8">
               <p className="text-sm text-amber-700 font-[family-name:var(--font-inter)]">
-                <strong>No exact specialists in your location:</strong> We found {results.alternativesFound} firm{results.alternativesFound !== 1 ? 's' : ''} nearby or with broader practice areas that can help with your case. These may be in adjacent locations or offer general legal services.
+                <strong>No exact specialists in your location:</strong> We found {results.alternativesFound} firm{(results.alternativesFound ?? 1) !== 1 ? 's' : ''} nearby or with broader practice areas that can help with your case. These may be in adjacent locations or offer general legal services.
               </p>
             </div>
           )}
@@ -534,7 +579,7 @@ function ResultsPageContent() {
                         Specializations
                       </p>
                       <div className="flex flex-wrap gap-2">
-                        {lawyer.practiceAreas.map((area) => (
+                        {(lawyer.practiceAreas || []).map((area) => (
                           <span
                             key={area}
                             className="inline-block bg-green-100 text-green-800 px-3 py-1 rounded-full text-xs font-semibold"
@@ -638,14 +683,14 @@ function ResultsPageContent() {
             <div className="space-y-6 mb-12">
               <div>
                 <h2 className="text-2xl font-bold font-[family-name:var(--font-khand)] text-gray-800">
-                  {results.exactMatchesFound > 0 
+                  {(results.exactMatchesFound ?? 0) > 0 
                     ? 'Additional Recommended Firms' 
                     : 'Recommended Law Firms'}
                 </h2>
                 <p className="text-sm text-gray-600 font-[family-name:var(--font-inter)] mt-2">
-                  {results.exactMatchesFound > 0 
-                    ? `Found ${results.alternativesFound} alternative option${results.alternativesFound !== 1 ? 's' : ''} that may also be suitable for your case.`
-                    : `Found ${results.alternativesFound} law firm${results.alternativesFound !== 1 ? 's' : ''} that can assist with your matter.`}
+                  {(results.exactMatchesFound ?? 0) > 0 
+                    ? `Found ${results.alternativesFound} alternative option${(results.alternativesFound ?? 1) !== 1 ? 's' : ''} that may also be suitable for your case.`
+                    : `Found ${results.alternativesFound} law firm${(results.alternativesFound ?? 1) !== 1 ? 's' : ''} that can assist with your matter.`}
                 </p>
               </div>
               {results.alternatives.map((lawyer, idx) => {
@@ -728,7 +773,7 @@ function ResultsPageContent() {
                           Specializations
                         </p>
                         <div className="flex flex-wrap gap-2">
-                          {lawyer.practiceAreas.map((area) => (
+                          {(lawyer.practiceAreas || []).map((area) => (
                             <span
                               key={area}
                               className={`inline-block px-3 py-1 rounded-full text-xs font-semibold ${tierBgColor}`}
@@ -890,7 +935,7 @@ function ResultsPageContent() {
                           Specializations
                         </p>
                         <div className="flex flex-wrap gap-2">
-                          {lawyer.practiceAreas.map((area) => (
+                          {(lawyer.practiceAreas || []).map((area) => (
                             <span
                               key={area}
                               className={isGeneralMatch 
@@ -1000,13 +1045,13 @@ function ResultsPageContent() {
           {((!results.exactMatches || results.exactMatches.length === 0) && 
             (!results.alternatives || results.alternatives.length === 0) && 
             (!results.recommendations || results.recommendations.length === 0)) &&
-           results.totalRecommendations > 0 ? (
+           (results.totalRecommendations ?? 0) > 0 ? (
             <div className="bg-green-50 border-l-4 border-green-600 p-6 rounded">
               <h2 className="text-xl font-bold font-[family-name:var(--font-khand)] text-green-700 mb-2">
                 ✓ Law Firms Available
               </h2>
               <p className="text-gray-700 font-[family-name:var(--font-inter)] mb-4">
-                We found {results.totalRecommendations} law firm{results.totalRecommendations !== 1 ? 's' : ''} that can assist with your legal matter. 
+                We found {results.totalRecommendations} law firm{(results.totalRecommendations ?? 1) !== 1 ? 's' : ''} that can assist with your legal matter. 
                 Please try searching again or contact our support team for more information.
               </p>
               <button

@@ -171,25 +171,47 @@ function FormPageContent() {
     setError('');
 
     try {
-      // Store form data in session/local storage for results page
-      const dataToStore = {
-        practiceAreas: formData.practiceAreas,
-        legalIssue: formData.legalIssue,
+      // Call the AI agent to search for law firms on Google Maps
+      const agentRequest = {
         state: formData.state,
         lga: formData.lga,
+        practiceAreas: formData.practiceAreas.length > 0 ? formData.practiceAreas : ['General Legal Services'],
         budget: formData.budget,
+        legalIssue: formData.legalIssue,
+      };
+
+      console.log('DEBUG: Sending request to AI agent:', agentRequest);
+      
+      const agentResponse = await fetch('/api/search-lawyers-agent', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(agentRequest),
+      });
+
+      if (!agentResponse.ok) {
+        throw new Error(`Agent request failed with status ${agentResponse.status}`);
+      }
+
+      const agentData = await agentResponse.json();
+      console.log('DEBUG: Agent response:', agentData);
+
+      // Store both form data and agent results for results page
+      const dataToStore = {
+        ...agentRequest,
+        agentResults: agentData,
       };
       
-      console.log('DEBUG: Storing form data:', dataToStore);
       sessionStorage.setItem('userFormData', JSON.stringify(dataToStore));
-      console.log('DEBUG: Form data stored. SessionStorage contents:', sessionStorage.getItem('userFormData'));
+      console.log('DEBUG: Form data and agent results stored');
 
       // Navigate to results page
       console.log('DEBUG: Navigating to /results');
       router.push('/results');
     } catch (err) {
       console.error('DEBUG: Error during submit:', err);
-      setError('An error occurred. Please try again.');
+      setError(err instanceof Error ? err.message : 'An error occurred. Please try again.');
       setLoading(false);
     }
   };
