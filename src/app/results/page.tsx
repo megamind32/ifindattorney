@@ -1,8 +1,13 @@
 'use client';
 
 import { useState, useEffect, Suspense } from 'react';
-import { useSearchParams, useRouter } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
+
+// ============================================================================
+// INTERFACES
+// ============================================================================
 
 interface Lawyer {
   firmName: string;
@@ -10,6 +15,7 @@ interface Lawyer {
   location: string;
   website?: string;
   practiceAreas?: string[];
+  specializations?: string[];  // Specific expertise areas
   phone?: string;
   address?: string;
   email?: string;
@@ -25,6 +31,12 @@ interface Lawyer {
   rating?: number;
   reviewCount?: number;
   source?: string;
+  logoUrl?: string;
+  description?: string;
+  firmSummary?: string;        // About the firm - goals and objectives
+  lawyersInfo?: string;        // Info about lawyers/partners
+  servicesOffered?: string;    // Services they provide
+  researchSource?: string;     // Where the info came from
 }
 
 interface ResultsData {
@@ -45,7 +57,6 @@ interface ResultsData {
   alternatives?: Lawyer[];
   recommendations?: Lawyer[];
   totalRecommendations?: number;
-  // Google Maps API response format
   resultsFound?: number;
   guaranteedResults?: boolean;
   results?: Lawyer[];
@@ -59,66 +70,375 @@ interface ResultsData {
   };
 }
 
+// ============================================================================
+// UTILITY FUNCTIONS
+// ============================================================================
+
+function getLogoUrl(website?: string): string {
+  if (!website) return '';
+  try {
+    const url = new URL(website.startsWith('http') ? website : `https://${website}`);
+    return `https://www.google.com/s2/favicons?domain=${url.hostname}&sz=128`;
+  } catch {
+    return '';
+  }
+}
+
+function getInitials(name: string): string {
+  return name
+    .split(' ')
+    .filter(word => word.length > 0 && !['&', 'and', 'the', 'of'].includes(word.toLowerCase()))
+    .slice(0, 2)
+    .map(word => word[0])
+    .join('')
+    .toUpperCase();
+}
+
+function getAccentColor(name: string): string {
+  const colors = [
+    'from-red-500 to-rose-600',
+    'from-red-600 to-red-700',
+    'from-rose-500 to-red-600',
+    'from-red-400 to-rose-500',
+    'from-rose-600 to-red-500',
+  ];
+  const index = name.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) % colors.length;
+  return colors[index];
+}
+
+// ============================================================================
+// FIRM CARD COMPONENT
+// ============================================================================
+
+interface FirmCardProps {
+  lawyer: Lawyer;
+  index: number;
+  isMatch: boolean;
+  userPracticeAreas?: string[];
+}
+
+function FirmCard({ lawyer, index, isMatch, userPracticeAreas }: FirmCardProps) {
+  const [imageError, setImageError] = useState(false);
+  const [expanded, setExpanded] = useState(false);
+  const logoUrl = getLogoUrl(lawyer.website);
+  const initials = getInitials(lawyer.firmName);
+  const accentColor = getAccentColor(lawyer.firmName);
+
+  const matchingAreas = lawyer.practiceAreas?.filter(area => 
+    userPracticeAreas?.some(userArea => 
+      area.toLowerCase().includes(userArea.toLowerCase()) ||
+      userArea.toLowerCase().includes(area.toLowerCase())
+    )
+  ) || [];
+
+  const isGeneralPractice = lawyer.practiceAreas?.some(area => 
+    area.toLowerCase().includes('general')
+  );
+
+  return (
+    <div 
+      className={`
+        group relative bg-white rounded-3xl overflow-hidden
+        shadow-lg hover:shadow-2xl transition-all duration-500 ease-out
+        transform hover:-translate-y-2 hover:scale-[1.02]
+        border-2 ${isMatch ? 'border-red-200' : 'border-gray-100'}
+        ${expanded ? 'ring-4 ring-red-100' : ''}
+      `}
+      style={{ animationDelay: `${index * 100}ms` }}
+    >
+      {isMatch && (
+        <div className="absolute top-4 right-4 z-20">
+          <div className="bg-gradient-to-r from-red-500 to-rose-500 text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-lg animate-pulse">
+            ✓ Best Match
+          </div>
+        </div>
+      )}
+
+      <div className={`relative h-48 bg-gradient-to-br ${accentColor} overflow-hidden`}>
+        <div className="absolute inset-0 opacity-10">
+          <div className="absolute top-0 left-0 w-40 h-40 bg-white rounded-full -translate-x-1/2 -translate-y-1/2" />
+          <div className="absolute bottom-0 right-0 w-60 h-60 bg-white rounded-full translate-x-1/3 translate-y-1/3" />
+        </div>
+
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="relative">
+            {logoUrl && !imageError ? (
+              <div className="w-24 h-24 bg-white rounded-2xl shadow-xl flex items-center justify-center p-3 transform group-hover:scale-110 transition-transform duration-300">
+                <Image
+                  src={logoUrl}
+                  alt={`${lawyer.firmName} logo`}
+                  width={64}
+                  height={64}
+                  className="object-contain"
+                  onError={() => setImageError(true)}
+                  unoptimized
+                />
+              </div>
+            ) : (
+              <div className="w-24 h-24 bg-white rounded-2xl shadow-xl flex items-center justify-center transform group-hover:scale-110 transition-transform duration-300">
+                <span className="text-3xl font-bold bg-gradient-to-br from-red-600 to-rose-500 bg-clip-text text-transparent">
+                  {initials}
+                </span>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {lawyer.rating && (
+          <div className="absolute bottom-4 left-4 bg-white/95 backdrop-blur-sm rounded-full px-3 py-1.5 shadow-lg flex items-center gap-1.5">
+            <span className="text-yellow-500">★</span>
+            <span className="font-bold text-gray-800">{lawyer.rating.toFixed(1)}</span>
+            {lawyer.reviewCount && (
+              <span className="text-gray-500 text-sm">({lawyer.reviewCount})</span>
+            )}
+          </div>
+        )}
+      </div>
+
+      <div className="p-6 space-y-4">
+        <div>
+          <h3 className="text-xl font-bold text-gray-900 group-hover:text-red-600 transition-colors line-clamp-2">
+            {lawyer.firmName}
+          </h3>
+          <p className="text-sm text-gray-500 mt-1 flex items-center gap-1">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+            {lawyer.location}
+          </p>
+        </div>
+
+        <div className="space-y-2">
+          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Practice Areas</p>
+          <div className="flex flex-wrap gap-2">
+            {lawyer.practiceAreas?.slice(0, 4).map((area, idx) => (
+              <span
+                key={idx}
+                className={`
+                  px-3 py-1 rounded-full text-xs font-medium transition-all
+                  ${matchingAreas.includes(area) 
+                    ? 'bg-red-100 text-red-700 ring-2 ring-red-200' 
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }
+                `}
+              >
+                {area}
+              </span>
+            ))}
+            {(lawyer.practiceAreas?.length || 0) > 4 && (
+              <span className="px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-500">
+                +{(lawyer.practiceAreas?.length || 0) - 4} more
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* Specializations if available */}
+        {lawyer.specializations && lawyer.specializations.length > 0 && (
+          <div className="space-y-2">
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Specializations</p>
+            <div className="flex flex-wrap gap-1.5">
+              {lawyer.specializations.slice(0, 5).map((spec, idx) => (
+                <span
+                  key={idx}
+                  className="px-2 py-0.5 rounded-full text-xs font-medium bg-red-50 text-red-600 border border-red-100"
+                >
+                  {spec}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Website Link - Always Visible */}
+        {lawyer.website && (
+          <div className="pt-2 border-t border-gray-100">
+            <a 
+              href={lawyer.website.startsWith('http') ? lawyer.website : `https://${lawyer.website}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-red-50 hover:bg-red-100 text-red-600 hover:text-red-700 font-semibold rounded-lg transition-all duration-200"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+              </svg>
+              Visit Website
+            </a>
+          </div>
+        )}
+
+        <div className={`space-y-3 overflow-hidden transition-all duration-300 ${expanded ? 'max-h-96' : 'max-h-0'}`}>
+          <div className="pt-4 border-t border-gray-100 space-y-3">
+            {lawyer.address && (
+              <div className="flex items-start gap-3 text-sm">
+                <div className="w-8 h-8 rounded-full bg-red-50 flex items-center justify-center flex-shrink-0">
+                  <svg className="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                  </svg>
+                </div>
+                <div>
+                  <p className="font-medium text-gray-700">Address</p>
+                  <p className="text-gray-500">{lawyer.address}</p>
+                </div>
+              </div>
+            )}
+            
+            {lawyer.phone && (
+              <div className="flex items-start gap-3 text-sm">
+                <div className="w-8 h-8 rounded-full bg-red-50 flex items-center justify-center flex-shrink-0">
+                  <svg className="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                  </svg>
+                </div>
+                <div>
+                  <p className="font-medium text-gray-700">Phone</p>
+                  <a href={`tel:${lawyer.phone}`} className="text-red-600 hover:text-red-700 font-medium">
+                    {lawyer.phone}
+                  </a>
+                </div>
+              </div>
+            )}
+
+            {lawyer.email && (
+              <div className="flex items-start gap-3 text-sm">
+                <div className="w-8 h-8 rounded-full bg-red-50 flex items-center justify-center flex-shrink-0">
+                  <svg className="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                  </svg>
+                </div>
+                <div>
+                  <p className="font-medium text-gray-700">Email</p>
+                  <a href={`mailto:${lawyer.email}`} className="text-red-600 hover:text-red-700 font-medium break-all">
+                    {lawyer.email}
+                  </a>
+                </div>
+              </div>
+            )}
+
+            {lawyer.website && (
+              <div className="flex items-start gap-3 text-sm">
+                <div className="w-8 h-8 rounded-full bg-red-50 flex items-center justify-center flex-shrink-0">
+                  <svg className="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
+                  </svg>
+                </div>
+                <div>
+                  <p className="font-medium text-gray-700">Website</p>
+                  <a 
+                    href={lawyer.website.startsWith('http') ? lawyer.website : `https://${lawyer.website}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-red-600 hover:text-red-700 font-medium break-all"
+                  >
+                    Visit Website →
+                  </a>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <button
+          onClick={() => setExpanded(!expanded)}
+          className="w-full text-center text-sm text-gray-500 hover:text-red-600 transition-colors py-2 flex items-center justify-center gap-1"
+        >
+          {expanded ? (
+            <>
+              <span>Show Less</span>
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+              </svg>
+            </>
+          ) : (
+            <>
+              <span>View Contact Details</span>
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </>
+          )}
+        </button>
+      </div>
+
+      <div className="px-6 pb-6 pt-2 flex gap-3">
+        {lawyer.phone && (
+          <a
+            href={`tel:${lawyer.phone}`}
+            className="flex-1 bg-gradient-to-r from-red-500 to-rose-500 text-white text-center py-3 px-4 rounded-xl font-semibold hover:from-red-600 hover:to-rose-600 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+          >
+            📞 Call Now
+          </a>
+        )}
+        {lawyer.gmapsUrl && (
+          <a
+            href={lawyer.gmapsUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex-1 bg-white border-2 border-red-200 text-red-600 text-center py-3 px-4 rounded-xl font-semibold hover:bg-red-50 hover:border-red-300 transition-all"
+          >
+            📍 Directions
+          </a>
+        )}
+      </div>
+
+      {isGeneralPractice && !isMatch && (
+        <div className="mx-6 mb-6 p-3 bg-amber-50 border border-amber-200 rounded-xl">
+          <p className="text-xs text-amber-700 flex items-center gap-2">
+            <span className="text-amber-500">💡</span>
+            General practice firm - handles various legal matters
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ============================================================================
+// LOADING SKELETON
+// ============================================================================
+
+function LoadingSkeleton() {
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-red-50/30">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-12">
+        <div className="text-center mb-12 space-y-4">
+          <div className="h-10 w-64 bg-gray-200 rounded-full mx-auto animate-pulse" />
+          <div className="h-6 w-96 bg-gray-100 rounded-full mx-auto animate-pulse" />
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <div key={i} className="bg-white rounded-3xl overflow-hidden shadow-lg">
+              <div className="h-48 bg-gradient-to-br from-gray-200 to-gray-300 animate-pulse" />
+              <div className="p-6 space-y-4">
+                <div className="h-6 w-3/4 bg-gray-200 rounded animate-pulse" />
+                <div className="h-4 w-1/2 bg-gray-100 rounded animate-pulse" />
+                <div className="flex gap-2">
+                  <div className="h-6 w-20 bg-gray-100 rounded-full animate-pulse" />
+                  <div className="h-6 w-24 bg-gray-100 rounded-full animate-pulse" />
+                </div>
+                <div className="flex gap-3 pt-4">
+                  <div className="flex-1 h-12 bg-gray-200 rounded-xl animate-pulse" />
+                  <div className="flex-1 h-12 bg-gray-100 rounded-xl animate-pulse" />
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================================
+// MAIN RESULTS PAGE CONTENT
+// ============================================================================
+
 function ResultsPageContent() {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  
   const [results, setResults] = useState<ResultsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [trackingLawyer, setTrackingLawyer] = useState<Lawyer | null>(null);
-  const [showMapModal, setShowMapModal] = useState(false);
-  const [gettingLocation, setGettingLocation] = useState(false);
-
-  const handleTrackLawFirm = (lawyer: Lawyer) => {
-    if (!lawyer.latitude || !lawyer.longitude) {
-      alert('Law firm location data not available');
-      return;
-    }
-    setTrackingLawyer(lawyer);
-    setShowMapModal(true);
-  };
-
-  const handleGetDirections = async () => {
-    if (!trackingLawyer?.latitude || !trackingLawyer?.longitude) return;
-
-    setGettingLocation(true);
-    // Request user location
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const userLat = position.coords.latitude;
-          const userLng = position.coords.longitude;
-          
-          // Open Google Maps with directions
-          const googleMapsUrl = `https://www.google.com/maps/dir/?api=1&origin=${userLat},${userLng}&destination=${trackingLawyer.latitude},${trackingLawyer.longitude}&travelmode=driving`;
-          window.open(googleMapsUrl, '_blank');
-          
-          setShowMapModal(false);
-          setTrackingLawyer(null);
-          setGettingLocation(false);
-        },
-        (error) => {
-          console.error('Geolocation error:', error);
-          // Fallback: Open Google Maps without user location
-          const googleMapsUrl = `https://www.google.com/maps/search/${trackingLawyer.latitude},${trackingLawyer.longitude}`;
-          window.open(googleMapsUrl, '_blank');
-          setShowMapModal(false);
-          setTrackingLawyer(null);
-          setGettingLocation(false);
-        }
-      );
-    }
-  };
-
-  const handleViewOnMap = () => {
-    if (!trackingLawyer?.latitude || !trackingLawyer?.longitude) return;
-    
-    const googleMapsUrl = `https://www.google.com/maps/search/${trackingLawyer.latitude},${trackingLawyer.longitude}`;
-    window.open(googleMapsUrl, '_blank');
-    setShowMapModal(false);
-    setTrackingLawyer(null);
-  };
 
   useEffect(() => {
     const fetchLawyers = async () => {
@@ -126,26 +446,28 @@ function ResultsPageContent() {
         setLoading(true);
         setError('');
 
-        // Get form data from session storage
+        if (typeof window === 'undefined') return;
+
         const formDataStr = sessionStorage.getItem('userFormData');
-        console.log('DEBUG: Retrieved from sessionStorage:', formDataStr);
         
         if (!formDataStr) {
-          console.error('DEBUG: No form data found in sessionStorage');
           setError('Form data not found. Please fill the form again.');
           setLoading(false);
           return;
         }
 
-        const formData = JSON.parse(formDataStr);
-        console.log('DEBUG: Parsed form data:', formData);
+        let formData;
+        try {
+          formData = JSON.parse(formDataStr);
+        } catch {
+          setError('Invalid form data. Please fill the form again.');
+          setLoading(false);
+          return;
+        }
 
-        // Check if agent results are already included (from form submission)
-        if (formData.agentResults) {
-          console.log('DEBUG: Using agent results from form submission');
+        if (formData.agentResults?.results?.length > 0) {
           const agentResponse = formData.agentResults;
           
-          // Transform agent results to display format
           const transformedResults: ResultsData = {
             success: agentResponse.success,
             state: agentResponse.state,
@@ -164,51 +486,45 @@ function ResultsPageContent() {
           };
 
           setResults(transformedResults);
-          sessionStorage.removeItem('userFormData');
           setLoading(false);
           return;
         }
 
-        // Otherwise call the AI Agent to search Google Maps for law firms
-        console.log('DEBUG: Triggering AI Agent to search Google Maps with:', formData);
         const response = await fetch('/api/search-lawyers-agent', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(formData),
+          body: JSON.stringify({
+            state: formData.state,
+            lga: formData.lga,
+            practiceAreas: formData.practiceAreas || ['General Legal Services'],
+            budget: formData.budget,
+            legalIssue: formData.legalIssue,
+          }),
         });
 
-        if (!response.ok) {
-          console.error('DEBUG: API response not OK:', response.status, response.statusText);
-          throw new Error('Failed to fetch lawyers');
-        }
+        if (!response.ok) throw new Error('Failed to fetch lawyers');
 
-        const agentData = await response.json();
-        console.log('DEBUG: Agent API Response received:', agentData);
-
-        // Transform agent results to display format
+        const data = await response.json();
+        
         const transformedResults: ResultsData = {
-          success: agentData.success,
-          state: agentData.state,
-          lga: agentData.lga,
+          success: data.success,
+          state: data.state,
+          lga: data.lga,
           practiceArea: formData.practiceAreas?.[0] || 'General Legal Services',
           selectedPracticeAreas: formData.practiceAreas || [],
           budget: formData.budget,
           legalIssue: formData.legalIssue,
-          totalRecommendations: agentData.firmsFound,
-          results: agentData.results || [],
-          source: agentData.source || 'AI Agent - Google Maps',
-          message: agentData.message,
-          matchingStrategy: `AI Agent Search Results - ${agentData.firmsFound} firms found`,
+          totalRecommendations: data.firmsFound,
+          results: data.results || [],
+          source: data.source || 'AI Agent',
+          message: data.message,
+          matchingStrategy: `Found ${data.firmsFound} firms`,
           guaranteedResults: true,
-          resultsFound: agentData.firmsFound,
+          resultsFound: data.firmsFound,
         };
 
         setResults(transformedResults);
-
-        // Clear session storage after successful fetch
-        sessionStorage.removeItem('userFormData');
       } catch (err) {
-        console.error('DEBUG: Error in fetch:', err);
         setError(err instanceof Error ? err.message : 'An error occurred');
       } finally {
         setLoading(false);
@@ -218,938 +534,278 @@ function ResultsPageContent() {
     fetchLawyers();
   }, []);
 
-  if (loading) {
-    return (
-      <main className="min-h-screen bg-white">
-        <div className="flex items-center justify-center h-screen">
-          <div className="text-center">
-            <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-red-600 mb-4"></div>
-            <p className="text-lg font-[family-name:var(--font-inter)] text-gray-700">
-              Searching for the best lawyers for your case...
-            </p>
-            <p className="text-sm text-gray-500 mt-2">
-              We're analyzing law firms in your preferred location
-            </p>
-          </div>
-        </div>
-      </main>
-    );
-  }
+  const sortedLawyers = (): Lawyer[] => {
+    if (!results?.results) return [];
+    
+    const lawyers = [...results.results];
+    const userAreas = results.selectedPracticeAreas || [];
+
+    return lawyers.sort((a, b) => {
+      const aMatches = a.practiceAreas?.some(area => 
+        userAreas.some(userArea => 
+          area.toLowerCase().includes(userArea.toLowerCase()) ||
+          userArea.toLowerCase().includes(area.toLowerCase())
+        )
+      ) || false;
+
+      const bMatches = b.practiceAreas?.some(area => 
+        userAreas.some(userArea => 
+          area.toLowerCase().includes(userArea.toLowerCase()) ||
+          userArea.toLowerCase().includes(area.toLowerCase())
+        )
+      ) || false;
+
+      if (aMatches && !bMatches) return -1;
+      if (!aMatches && bMatches) return 1;
+
+      return (b.matchScore || 0) - (a.matchScore || 0);
+    });
+  };
+
+  const matchingFirms = sortedLawyers().filter(lawyer => 
+    lawyer.practiceAreas?.some(area => 
+      results?.selectedPracticeAreas?.some(userArea => 
+        area.toLowerCase().includes(userArea.toLowerCase()) ||
+        userArea.toLowerCase().includes(area.toLowerCase())
+      )
+    )
+  );
+
+  const otherFirms = sortedLawyers().filter(lawyer => 
+    !lawyer.practiceAreas?.some(area => 
+      results?.selectedPracticeAreas?.some(userArea => 
+        area.toLowerCase().includes(userArea.toLowerCase()) ||
+        userArea.toLowerCase().includes(area.toLowerCase())
+      )
+    )
+  );
+
+  if (loading) return <LoadingSkeleton />;
 
   if (error) {
     return (
-      <main className="min-h-screen bg-white page-transition-enter">
-        <section className="border-b border-black/10 px-4 sm:px-6 py-6 sm:py-8 bg-white content-transition">
-          <div className="max-w-4xl mx-auto">
-            <Link href="/">
-              <button className="text-red-600 hover:text-red-700 font-semibold text-sm mb-4">
-                ← Back to Home
-              </button>
-            </Link>
-            <div className="bg-red-50 border-l-4 border-red-600 p-6 rounded">
-              <h2 className="text-xl font-bold font-[family-name:var(--font-khand)] text-red-700 mb-2">
-                Error Retrieving Results
-              </h2>
-              <p className="text-gray-700 font-[family-name:var(--font-inter)]">
-                {error}
-              </p>
-              <button
-                onClick={() => router.push('/form')}
-                className="mt-4 px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition font-semibold"
-              >
-                Try Again
-              </button>
-            </div>
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-red-50/30 flex items-center justify-center px-4">
+        <div className="max-w-md w-full text-center">
+          <div className="w-24 h-24 mx-auto mb-6 bg-red-100 rounded-full flex items-center justify-center">
+            <svg className="w-12 h-12 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
           </div>
-        </section>
-      </main>
+          <h2 className="text-2xl font-bold text-gray-900 mb-3">Oops! Something went wrong</h2>
+          <p className="text-gray-600 mb-8">{error}</p>
+          <Link
+            href="/form"
+            className="inline-flex items-center gap-2 bg-gradient-to-r from-red-500 to-rose-500 text-white px-8 py-4 rounded-xl font-semibold hover:from-red-600 hover:to-rose-600 transition-all shadow-lg"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            </svg>
+            Back to Form
+          </Link>
+        </div>
+      </div>
     );
   }
 
-  if (!results) {
-    return (
-      <main className="min-h-screen bg-white page-transition-enter">
-        <section className="border-b border-black/10 px-4 sm:px-6 py-6 sm:py-8 bg-white content-transition">
-          <div className="max-w-4xl mx-auto">
-            <Link href="/">
-              <button className="text-red-600 hover:text-red-700 font-semibold text-sm mb-4">
-                ← Back to Home
-              </button>
-            </Link>
-            <div className="bg-amber-50 border-l-4 border-amber-600 p-6 rounded">
-              <h2 className="text-xl font-bold font-[family-name:var(--font-khand)] text-amber-700 mb-2">
-                No Results Found
-              </h2>
-              <p className="text-gray-700 font-[family-name:var(--font-inter)] mb-4">
-                We couldn't find lawyers matching your criteria. This might happen if:
-              </p>
-              <ul className="list-disc list-inside text-gray-600 mb-4 space-y-1 font-[family-name:var(--font-inter)]">
-                <li>The location you selected is not yet in our system</li>
-                <li>The practice area is very specialized</li>
-                <li>Your session data was lost</li>
-              </ul>
-              <button
-                onClick={() => router.push('/form')}
-                className="px-6 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition font-semibold"
-              >
-                Search Again
-              </button>
-            </div>
-          </div>
-        </section>
-      </main>
-    );
-  }
+  const allLawyers = sortedLawyers();
 
   return (
-    <main className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <section className="bg-red-600 text-white px-4 sm:px-6 py-8 sm:py-12 content-transition">
-        <div className="max-w-4xl mx-auto">
-          <Link href="/">
-            <button className="text-red-100 hover:text-white font-semibold text-sm mb-4">
-              ← Back to Home
-            </button>
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-red-50/30">
+      <section className="relative overflow-hidden px-4 sm:px-6 pt-12 pb-8">
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute -top-40 -right-40 w-96 h-96 bg-red-100 rounded-full opacity-50 blur-3xl" />
+          <div className="absolute -bottom-20 -left-20 w-72 h-72 bg-rose-100 rounded-full opacity-50 blur-3xl" />
+        </div>
+
+        <div className="max-w-7xl mx-auto relative">
+          <Link
+            href="/form"
+            className="inline-flex items-center gap-2 text-gray-600 hover:text-red-600 transition-colors mb-8 group"
+          >
+            <svg className="w-5 h-5 group-hover:-translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            </svg>
+            <span className="font-medium">New Search</span>
           </Link>
-          <h1 className="text-3xl sm:text-4xl font-bold font-[family-name:var(--font-khand)] mb-2">
-            Recommended Lawyers
-          </h1>
-          <p className="text-red-100 font-[family-name:var(--font-inter)]">
-            Based on your legal issue and location preferences
-          </p>
-        </div>
-      </section>
 
-      {/* Results Summary */}
-      <section className="px-4 sm:px-6 py-8 page-transition-enter">
-        <div className="max-w-4xl mx-auto">
-          {/* Matching Strategy Banner (Old Format) */}
-          {results.matchingStrategy && (
-            <div className={`rounded-lg p-6 mb-8 border-l-4 ${
-              results.matchingTier === 'tier1' ? 'bg-green-50 border-green-600' :
-              results.matchingTier === 'tier2' ? 'bg-blue-50 border-blue-600' :
-              results.matchingTier === 'tier3' ? 'bg-amber-50 border-amber-600' :
-              'bg-purple-50 border-purple-600'
-            }`}>
-              <h2 className={`text-lg font-bold font-[family-name:var(--font-khand)] mb-2 ${
-                results.matchingTier === 'tier1' ? 'text-green-700' :
-                results.matchingTier === 'tier2' ? 'text-blue-700' :
-                results.matchingTier === 'tier3' ? 'text-amber-700' :
-                'text-purple-700'
-              }`}>
-                {results.matchingStrategy}
-              </h2>
-              <p className={`text-sm font-[family-name:var(--font-inter)] ${
-                results.matchingTier === 'tier1' ? 'text-green-700' :
-                results.matchingTier === 'tier2' ? 'text-blue-700' :
-                results.matchingTier === 'tier3' ? 'text-amber-700' :
-                'text-purple-700'
-              }`}>
-                {results.strategyDetails}
-              </p>
+          <div className="text-center mb-8">
+            <div className="inline-block mb-4">
+              <span className="bg-red-100 text-red-700 text-sm font-semibold px-4 py-2 rounded-full">
+                {allLawyers.length} Law Firm{allLawyers.length !== 1 ? 's' : ''} Found
+              </span>
             </div>
-          )}
+            <h1 className="text-4xl sm:text-5xl font-bold text-gray-900 mb-4">
+              Your Legal <span className="text-transparent bg-clip-text bg-gradient-to-r from-red-500 to-rose-500">Matches</span>
+            </h1>
+            <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+              {results?.selectedPracticeAreas?.length ? (
+                <>
+                  Law firms specializing in <span className="font-semibold text-red-600">{results.selectedPracticeAreas.join(', ')}</span>
+                  {results.lga && results.state && (
+                    <> in <span className="font-semibold">{results.lga}, {results.state}</span></>
+                  )}
+                </>
+              ) : (
+                <>Law firms in {results?.state || 'your area'}</>
+              )}
+            </p>
+          </div>
 
-          {/* Google Maps Results Header */}
-          {(results.source === 'google_maps_places_api' || results.source === 'mock_data_fallback') && (
-            <div className={`rounded-lg p-6 mb-8 border-l-4 ${results.source === 'google_maps_places_api' ? 'bg-blue-50 border-blue-600' : 'bg-purple-50 border-purple-600'}`}>
-              <h2 className={`text-lg font-bold font-[family-name:var(--font-khand)] mb-2 ${results.source === 'google_maps_places_api' ? 'text-blue-700' : 'text-purple-700'}`}>
-                📍 {results.source === 'google_maps_places_api' ? 'Real-time Results from Google Maps' : 'Law Firm Recommendations'}
-              </h2>
-              <p className={`text-sm font-[family-name:var(--font-inter)] ${results.source === 'google_maps_places_api' ? 'text-blue-700' : 'text-purple-700'}`}>
-                {results.message || `Found ${results.resultsFound} law firm(s) matching your search`}
-              </p>
-            </div>
-          )}
-
-          {/* Case Summary (Old Format) */}
-          {results.state && (
-            <div className="bg-white border border-gray-200 rounded-lg p-6 mb-8 content-transition">
-              <h2 className="text-lg font-bold font-[family-name:var(--font-khand)] text-gray-800 mb-4">
-                Your Case Summary
-              </h2>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div>
-                  <p className="text-xs text-gray-500 uppercase tracking-wide font-semibold">
-                    Legal Issue
-                  </p>
-                  <p className="text-lg font-semibold text-gray-900 mt-1">
-                    {results.practiceArea || 'Legal Services'}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-xs text-gray-500 uppercase tracking-wide font-semibold">
-                    Location
-                  </p>
-                  <p className="text-lg font-semibold text-gray-900 mt-1">
-                    {results.lga ? `${results.lga}, ${results.state}` : results.state}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-xs text-gray-500 uppercase tracking-wide font-semibold">
-                    Results Found
-                  </p>
-                  <p className="text-lg font-semibold text-red-600 mt-1">
-                    {(results.totalRecommendations || results.resultsFound || 0)} Firm{((results.totalRecommendations || results.resultsFound || 0) !== 1 ? 's' : '')}
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Info Notes */}
-          {(results.exactMatchesFound ?? 0) > 0 && (results.alternativesFound ?? 0) > 0 && (
-            <div className="bg-blue-50 border-l-4 border-blue-600 p-4 rounded mb-8">
-              <p className="text-sm text-blue-700 font-[family-name:var(--font-inter)]">
-                <strong>Alternative Options:</strong> In addition to your exact matches, we found {results.alternativesFound} additional firm{(results.alternativesFound ?? 1) !== 1 ? 's' : ''} nearby or with similar expertise that may also suit your needs.
-              </p>
-            </div>
-          )}
-
-          {(results.exactMatchesFound ?? 0) === 0 && (results.alternativesFound ?? 0) > 0 && (
-            <div className="bg-amber-50 border-l-4 border-amber-600 p-4 rounded mb-8">
-              <p className="text-sm text-amber-700 font-[family-name:var(--font-inter)]">
-                <strong>No exact specialists in your location:</strong> We found {results.alternativesFound} firm{(results.alternativesFound ?? 1) !== 1 ? 's' : ''} nearby or with broader practice areas that can help with your case. These may be in adjacent locations or offer general legal services.
-              </p>
-            </div>
-          )}
-
-          {/* Google Maps Results Section */}
-          {(results.source === 'google_maps_places_api' || results.source === 'mock_data_fallback') && results.results && results.results.length > 0 && (
-            <div className="space-y-6 mb-12">
+          <div className="max-w-3xl mx-auto bg-white rounded-2xl shadow-lg p-6 border border-gray-100">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
               <div>
-                <h2 className="text-2xl font-bold font-[family-name:var(--font-khand)] text-gray-800">
-                  Available Law Firms
-                </h2>
-                <p className="text-sm text-gray-600 font-[family-name:var(--font-inter)] mt-2">
-                  {results.source === 'google_maps_places_api' ? 'Found via Google Maps • Updated in real-time' : 'Recommended for your case'}
-                </p>
+                <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Location</p>
+                <p className="font-semibold text-gray-900">{results?.lga || 'All'}, {results?.state}</p>
               </div>
-              {results.results.map((lawyer, idx) => (
-                <div
-                  key={idx}
-                  className="bg-white border-2 border-blue-200 rounded-lg overflow-hidden hover:shadow-lg transition"
-                >
-                  {/* Lawyer Card Header */}
-                  <div className="bg-gradient-to-r from-blue-50 to-white px-6 py-4 border-b border-blue-200">
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <h3 className="text-2xl font-bold font-[family-name:var(--font-khand)] text-gray-900">
-                          {lawyer.firmName}
-                        </h3>
-                        <p className="text-sm text-gray-600 font-[family-name:var(--font-inter)] mt-1">
-                          {lawyer.location}
-                        </p>
-                        {lawyer.distance && (
-                          <p className="text-xs text-blue-600 font-[family-name:var(--font-inter)] mt-1">
-                            📍 {lawyer.distance.toFixed(1)}km away
-                          </p>
-                        )}
-                      </div>
-                      <div className="text-right">
-                        {lawyer.rating && (
-                          <div className="inline-block bg-yellow-100 text-yellow-800 px-3 py-1 rounded-full text-sm font-bold mb-2">
-                            ★ {lawyer.rating.toFixed(1)} ({lawyer.reviewCount} reviews)
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Lawyer Card Body */}
-                  <div className="px-6 py-4 space-y-4">
-                    {/* Contact Information */}
-                    <div className="bg-gray-50 rounded-lg p-4">
-                      <p className="text-xs text-gray-500 uppercase tracking-wide font-semibold mb-3">
-                        Contact Details
-                      </p>
-                      <div className="space-y-2 text-sm font-[family-name:var(--font-inter)]">
-                        {lawyer.address && (
-                          <p>
-                            <strong className="text-gray-700">Address:</strong>{' '}
-                            <span className="text-gray-600">{lawyer.address}</span>
-                          </p>
-                        )}
-                        {lawyer.phone && (
-                          <p>
-                            <strong className="text-gray-700">Phone:</strong>{' '}
-                            <a href={`tel:${lawyer.phone}`} className="text-blue-600 hover:text-blue-700 font-semibold">
-                              {lawyer.phone}
-                            </a>
-                          </p>
-                        )}
-                        {lawyer.website && (
-                          <p>
-                            <strong className="text-gray-700">Website:</strong>{' '}
-                            <a
-                              href={lawyer.website.startsWith('http') ? lawyer.website : `https://${lawyer.website}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-blue-600 hover:text-blue-700 font-semibold break-all"
-                            >
-                              Visit Website →
-                            </a>
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Lawyer Card Footer */}
-                  <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 flex gap-3 flex-wrap">
-                    {lawyer.phone && (
-                      <a
-                        href={`tel:${lawyer.phone}`}
-                        className="flex-1 min-w-[150px] px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-bold text-center text-sm"
-                      >
-                        Call Now
-                      </a>
-                    )}
-                    {lawyer.gmapsUrl && (
-                      <a
-                        href={lawyer.gmapsUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex-1 min-w-[150px] px-4 py-2 border-2 border-blue-600 text-blue-600 rounded-lg hover:bg-blue-50 transition font-bold text-center text-sm"
-                      >
-                        View on Google Maps
-                      </a>
-                    )}
-                    {lawyer.directionsUrl && (
-                      <a
-                        href={lawyer.directionsUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex-1 min-w-[150px] px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-bold text-center text-sm"
-                      >
-                        Get Directions
-                      </a>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* Exact Matches Section (Old Format) */}
-          {results.exactMatches && results.exactMatches.length > 0 ? (
-            <div className="space-y-6 mb-12">
               <div>
-                <h2 className="text-2xl font-bold font-[family-name:var(--font-khand)] text-gray-800">
-                  ✓ Exact Matches in Your Location
-                </h2>
-                <p className="text-sm text-gray-600 font-[family-name:var(--font-inter)] mt-2">
-                  These are specialists in {results.practiceArea} right where you need them.
-                </p>
+                <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Practice Area</p>
+                <p className="font-semibold text-gray-900">{results?.selectedPracticeAreas?.[0] || 'General'}</p>
               </div>
-              {results.exactMatches.map((lawyer, idx) => (
-                <div
-                  key={idx}
-                  className="bg-white border-2 border-green-200 rounded-lg overflow-hidden hover:shadow-lg transition"
-                >
-                  {/* Lawyer Card Header */}
-                  <div className="bg-gradient-to-r from-green-50 to-white px-6 py-4 border-b border-green-200">
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <h3 className="text-2xl font-bold font-[family-name:var(--font-khand)] text-gray-900">
-                          {lawyer.firmName}
-                        </h3>
-                        <p className="text-sm text-gray-600 font-[family-name:var(--font-inter)] mt-1">
-                          {lawyer.location} • Contact: {lawyer.contactPerson}
-                        </p>
-                        {lawyer.distance && (
-                          <p className="text-xs text-green-600 font-[family-name:var(--font-inter)] mt-1">
-                            📍 {lawyer.distance.toFixed(1)}km from your location
-                          </p>
-                        )}
-                      </div>
-                      <div className="text-right">
-                        <div className="inline-block bg-green-600 text-white px-3 py-1 rounded-full text-sm font-bold">
-                          ✓ Exact Match
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Lawyer Card Body */}
-                  <div className="px-6 py-4 space-y-4">
-                    {/* Practice Areas */}
-                    <div>
-                      <p className="text-xs text-gray-500 uppercase tracking-wide font-semibold mb-2">
-                        Specializations
-                      </p>
-                      <div className="flex flex-wrap gap-2">
-                        {(lawyer.practiceAreas || []).map((area) => (
-                          <span
-                            key={area}
-                            className="inline-block bg-green-100 text-green-800 px-3 py-1 rounded-full text-xs font-semibold"
-                          >
-                            {area}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Match Reason */}
-                    <div>
-                      <p className="text-xs text-gray-500 uppercase tracking-wide font-semibold mb-1">
-                        Why They Match
-                      </p>
-                      <p className="text-sm text-gray-700 font-[family-name:var(--font-inter)]">
-                        {lawyer.matchReason}
-                      </p>
-                    </div>
-
-                    {/* Contact Information */}
-                    <div className="bg-gray-50 rounded-lg p-4">
-                      <p className="text-xs text-gray-500 uppercase tracking-wide font-semibold mb-3">
-                        Contact Details
-                      </p>
-                      <div className="space-y-2 text-sm font-[family-name:var(--font-inter)]">
-                        {lawyer.address && (
-                          <p>
-                            <strong className="text-gray-700">Address:</strong>{' '}
-                            <span className="text-gray-600">{lawyer.address}</span>
-                          </p>
-                        )}
-                        {lawyer.phone && (
-                          <p>
-                            <strong className="text-gray-700">Phone:</strong>{' '}
-                            <a href={`tel:${lawyer.phone}`} className="text-green-600 hover:text-green-700 font-semibold">
-                              {lawyer.phone}
-                            </a>
-                          </p>
-                        )}
-                        {lawyer.email && (
-                          <p>
-                            <strong className="text-gray-700">Email:</strong>{' '}
-                            <a href={`mailto:${lawyer.email}`} className="text-green-600 hover:text-green-700 font-semibold break-all">
-                              {lawyer.email}
-                            </a>
-                          </p>
-                        )}
-                        {lawyer.website && (
-                          <p>
-                            <strong className="text-gray-700">Website:</strong>{' '}
-                            <a
-                              href={lawyer.website.startsWith('http') ? lawyer.website : `https://${lawyer.website}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-green-600 hover:text-green-700 font-semibold break-all"
-                            >
-                              {lawyer.website} →
-                            </a>
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Lawyer Card Footer */}
-                  <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 flex gap-3 flex-wrap">
-                    {lawyer.phone && (
-                      <a
-                        href={`tel:${lawyer.phone}`}
-                        className="flex-1 min-w-[150px] px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-bold text-center text-sm"
-                      >
-                        Call Now
-                      </a>
-                    )}
-                    {lawyer.email && (
-                      <a
-                        href={`mailto:${lawyer.email}?subject=Legal Consultation Inquiry`}
-                        className="flex-1 min-w-[150px] px-4 py-2 border-2 border-green-600 text-green-600 rounded-lg hover:bg-green-50 transition font-bold text-center text-sm"
-                      >
-                        Send Email
-                      </a>
-                    )}
-                    {lawyer.latitude && lawyer.longitude && (
-                      <button
-                        onClick={() => handleTrackLawFirm(lawyer)}
-                        disabled={showMapModal}
-                        className="flex-1 min-w-[150px] px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-bold text-center text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        Track on Maps
-                      </button>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : null}
-
-          {/* Alternatives Section - Display all non-exact-match results */}
-          {results.alternatives && results.alternatives.length > 0 && (
-            <div className="space-y-6 mb-12">
               <div>
-                <h2 className="text-2xl font-bold font-[family-name:var(--font-khand)] text-gray-800">
-                  {(results.exactMatchesFound ?? 0) > 0 
-                    ? 'Additional Recommended Firms' 
-                    : 'Recommended Law Firms'}
-                </h2>
-                <p className="text-sm text-gray-600 font-[family-name:var(--font-inter)] mt-2">
-                  {(results.exactMatchesFound ?? 0) > 0 
-                    ? `Found ${results.alternativesFound} alternative option${(results.alternativesFound ?? 1) !== 1 ? 's' : ''} that may also be suitable for your case.`
-                    : `Found ${results.alternativesFound} law firm${(results.alternativesFound ?? 1) !== 1 ? 's' : ''} that can assist with your matter.`}
-                </p>
+                <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Budget</p>
+                <p className="font-semibold text-gray-900">{results?.budget || 'Any'}</p>
               </div>
-              {results.alternatives.map((lawyer, idx) => {
-                // Determine tier color based on matchTier
-                let tierColor = '#d1d5db'; // gray
-                let tierBgColor = 'bg-gray-100 text-gray-800';
-                let tierButtonColor = 'bg-gray-600 hover:bg-gray-700';
-                let tierBorderColor = 'border-gray-200';
-                let tierLabel = 'Alternative';
-
-                if (lawyer.matchTier?.includes('TIER 2')) {
-                  tierColor = '#3b82f6'; // blue
-                  tierBgColor = 'bg-blue-100 text-blue-800';
-                  tierButtonColor = 'bg-blue-600 hover:bg-blue-700';
-                  tierBorderColor = 'border-blue-200';
-                  tierLabel = 'Nearby Specialist';
-                } else if (lawyer.matchTier?.includes('TIER 3')) {
-                  tierColor = '#f59e0b'; // amber
-                  tierBgColor = 'bg-amber-100 text-amber-800';
-                  tierButtonColor = 'bg-amber-600 hover:bg-amber-700';
-                  tierBorderColor = 'border-amber-200';
-                  tierLabel = 'Regional Specialist';
-                } else if (lawyer.matchTier?.includes('TIER 4')) {
-                  tierColor = '#a855f7'; // purple
-                  tierBgColor = 'bg-purple-100 text-purple-800';
-                  tierButtonColor = 'bg-purple-600 hover:bg-purple-700';
-                  tierBorderColor = 'border-purple-200';
-                  tierLabel = 'General Practice';
-                } else if (lawyer.matchTier?.includes('TIER 5')) {
-                  tierColor = '#8b5cf6'; // violet
-                  tierBgColor = 'bg-violet-100 text-violet-800';
-                  tierButtonColor = 'bg-violet-600 hover:bg-violet-700';
-                  tierBorderColor = 'border-violet-200';
-                  tierLabel = 'Available Firm';
-                }
-
-                return (
-                  <div
-                    key={idx}
-                    className={`bg-white border rounded-lg overflow-hidden hover:shadow-lg transition border-2 ${tierBorderColor}`}
-                  >
-                    {/* Lawyer Card Header */}
-                    <div className="bg-gradient-to-r px-6 py-4 border-b" style={{
-                      backgroundImage: `linear-gradient(to right, rgba(${
-                        tierColor === '#3b82f6' ? '59,130,246' :
-                        tierColor === '#f59e0b' ? '245,158,11' :
-                        tierColor === '#a855f7' ? '168,85,247' :
-                        tierColor === '#8b5cf6' ? '139,92,246' :
-                        '209,213,219'
-                      }, 0.1), white)`,
-                      borderColor: tierColor
-                    }}>
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <h3 className="text-2xl font-bold font-[family-name:var(--font-khand)] text-gray-900">
-                            {lawyer.firmName}
-                          </h3>
-                          <p className="text-sm text-gray-600 font-[family-name:var(--font-inter)] mt-1">
-                            {lawyer.location} • Contact: {lawyer.contactPerson}
-                          </p>
-                          {lawyer.distance && (
-                            <p className="text-xs text-gray-500 font-[family-name:var(--font-inter)] mt-1">
-                              📍 {lawyer.distance.toFixed(1)}km away
-                            </p>
-                          )}
-                        </div>
-                        <div className="text-right">
-                          <div className={`inline-block ${tierBgColor} px-3 py-1 rounded-full text-sm font-bold`}>
-                            {tierLabel}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Lawyer Card Body */}
-                    <div className="px-6 py-4 space-y-4">
-                      {/* Practice Areas */}
-                      <div>
-                        <p className="text-xs text-gray-500 uppercase tracking-wide font-semibold mb-2">
-                          Specializations
-                        </p>
-                        <div className="flex flex-wrap gap-2">
-                          {(lawyer.practiceAreas || []).map((area) => (
-                            <span
-                              key={area}
-                              className={`inline-block px-3 py-1 rounded-full text-xs font-semibold ${tierBgColor}`}
-                            >
-                              {area}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-
-                      {/* Match Reason */}
-                      <div>
-                        <p className="text-xs text-gray-500 uppercase tracking-wide font-semibold mb-1">
-                          Why They May Help
-                        </p>
-                        <p className="text-sm text-gray-700 font-[family-name:var(--font-inter)]">
-                          {lawyer.matchReason}
-                        </p>
-                      </div>
-
-                      {/* Contact Information */}
-                      <div className="bg-gray-50 rounded-lg p-4">
-                        <p className="text-xs text-gray-500 uppercase tracking-wide font-semibold mb-3">
-                          Contact Details
-                        </p>
-                        <div className="space-y-2 text-sm font-[family-name:var(--font-inter)]">
-                          {lawyer.address && (
-                            <p>
-                              <strong className="text-gray-700">Address:</strong>{' '}
-                              <span className="text-gray-600">{lawyer.address}</span>
-                            </p>
-                          )}
-                          {lawyer.phone && (
-                            <p>
-                              <strong className="text-gray-700">Phone:</strong>{' '}
-                              <a href={`tel:${lawyer.phone}`} style={{ color: tierColor }} className="hover:opacity-75 font-semibold">
-                                {lawyer.phone}
-                              </a>
-                            </p>
-                          )}
-                          {lawyer.email && (
-                            <p>
-                              <strong className="text-gray-700">Email:</strong>{' '}
-                              <a href={`mailto:${lawyer.email}`} style={{ color: tierColor }} className="hover:opacity-75 font-semibold break-all">
-                                {lawyer.email}
-                              </a>
-                            </p>
-                          )}
-                          {lawyer.website && (
-                            <p>
-                              <strong className="text-gray-700">Website:</strong>{' '}
-                              <a
-                                href={lawyer.website.startsWith('http') ? lawyer.website : `https://${lawyer.website}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                style={{ color: tierColor }}
-                                className="hover:opacity-75 font-semibold break-all"
-                              >
-                                {lawyer.website} →
-                              </a>
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Lawyer Card Footer */}
-                    <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 flex gap-3 flex-wrap">
-                      {lawyer.phone && (
-                        <a
-                          href={`tel:${lawyer.phone}`}
-                          className={`flex-1 min-w-[150px] px-4 py-2 text-white rounded-lg transition font-bold text-center text-sm ${tierButtonColor}`}
-                        >
-                          Call Now
-                        </a>
-                      )}
-                      {lawyer.email && (
-                        <a
-                          href={`mailto:${lawyer.email}?subject=Legal Consultation Inquiry`}
-                          className={`flex-1 min-w-[150px] px-4 py-2 rounded-lg hover:bg-gray-100 transition font-bold text-center text-sm border-2`}
-                          style={{ borderColor: tierColor, color: tierColor }}
-                        >
-                          Send Email
-                        </a>
-                      )}
-                      {lawyer.latitude && lawyer.longitude && (
-                        <button
-                          onClick={() => handleTrackLawFirm(lawyer)}
-                          disabled={showMapModal}
-                          className={`flex-1 min-w-[150px] px-4 py-2 text-white rounded-lg transition font-bold text-center text-sm disabled:opacity-50 disabled:cursor-not-allowed ${tierButtonColor}`}
-                        >
-                          Track on Maps
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-
-          {/* Fallback: Display All Recommendations when no exact matches/alternatives */}
-          {(!results.exactMatches || results.exactMatches.length === 0) && 
-           (!results.alternatives || results.alternatives.length === 0) && 
-           results.recommendations && results.recommendations.length > 0 ? (
-            <div className="space-y-6 mb-12">
               <div>
-                <h2 className="text-2xl font-bold font-[family-name:var(--font-khand)] text-gray-800">
-                  Available Law Firms
-                </h2>
-                <p className="text-sm text-gray-600 font-[family-name:var(--font-inter)] mt-2">
-                  {results.matchingStrategy && results.strategyDetails 
-                    ? `${results.strategyDetails}`
-                    : 'We found experienced law firms that can assist with your legal matter.'}
-                </p>
+                <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Results</p>
+                <p className="font-semibold text-red-600">{allLawyers.length} Firms</p>
               </div>
-              {results.recommendations.map((lawyer, idx) => {
-                const isGeneralMatch = lawyer.matchTier && lawyer.matchTier.includes('TIER 4');
-                const tierColor = isGeneralMatch ? 'purple' : 'blue';
-                const tierBgColor = isGeneralMatch ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800';
-                const tierButtonColor = isGeneralMatch ? 'bg-purple-600 hover:bg-purple-700' : 'bg-blue-600 hover:bg-blue-700';
-                const tierBorderColor = isGeneralMatch ? 'border-purple-200' : 'border-blue-200';
-                
-                return (
-                  <div
-                    key={idx}
-                    className={`bg-white border rounded-lg overflow-hidden hover:shadow-lg transition`}
-                    style={{ borderColor: tierColor === 'purple' ? '#ddd6fe' : '#bfdbfe' }}
-                  >
-                    {/* Lawyer Card Header */}
-                    <div className={`bg-gradient-to-r px-6 py-4 border-b`} style={{ 
-                      backgroundImage: tierColor === 'purple' 
-                        ? 'linear-gradient(to right, #f3f0ff, white)'
-                        : 'linear-gradient(to right, #eff6ff, white)',
-                      borderColor: tierColor === 'purple' ? '#e5d4ff' : '#bfdbfe'
-                    }}>
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <h3 className="text-2xl font-bold font-[family-name:var(--font-khand)] text-gray-900">
-                            {lawyer.firmName}
-                          </h3>
-                          <p className="text-sm text-gray-600 font-[family-name:var(--font-inter)] mt-1">
-                            {lawyer.location} • Contact: {lawyer.contactPerson}
-                          </p>
-                        </div>
-                        <div className="text-right">
-                          <div className={`inline-block ${tierBgColor} px-3 py-1 rounded-full text-sm font-bold`}>
-                            {isGeneralMatch ? 'General Practice' : 'Available'}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Lawyer Card Body */}
-                    <div className="px-6 py-4 space-y-4">
-                      {/* Practice Areas */}
-                      <div>
-                        <p className="text-xs text-gray-500 uppercase tracking-wide font-semibold mb-2">
-                          Specializations
-                        </p>
-                        <div className="flex flex-wrap gap-2">
-                          {(lawyer.practiceAreas || []).map((area) => (
-                            <span
-                              key={area}
-                              className={isGeneralMatch 
-                                ? 'inline-block bg-purple-100 text-purple-800 px-3 py-1 rounded-full text-xs font-semibold'
-                                : 'inline-block bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-xs font-semibold'}
-                            >
-                              {area}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-
-                      {/* Match Reason */}
-                      <div>
-                        <p className="text-xs text-gray-500 uppercase tracking-wide font-semibold mb-1">
-                          Why They Can Help
-                        </p>
-                        <p className="text-sm text-gray-700 font-[family-name:var(--font-inter)]">
-                          {lawyer.matchReason || 'This law firm can assist with your legal matter.'}
-                        </p>
-                      </div>
-
-                      {/* Contact Information */}
-                      <div className="bg-gray-50 rounded-lg p-4">
-                        <p className="text-xs text-gray-500 uppercase tracking-wide font-semibold mb-3">
-                          Contact Details
-                        </p>
-                        <div className="space-y-2 text-sm font-[family-name:var(--font-inter)]">
-                          {lawyer.address && (
-                            <p>
-                              <strong className="text-gray-700">Address:</strong>{' '}
-                              <span className="text-gray-600">{lawyer.address}</span>
-                            </p>
-                          )}
-                          {lawyer.phone && (
-                            <p>
-                              <strong className="text-gray-700">Phone:</strong>{' '}
-                              <a href={`tel:${lawyer.phone}`} className={isGeneralMatch ? 'text-purple-600 hover:text-purple-700 font-semibold' : 'text-blue-600 hover:text-blue-700 font-semibold'}>
-                                {lawyer.phone}
-                              </a>
-                            </p>
-                          )}
-                          {lawyer.email && (
-                            <p>
-                              <strong className="text-gray-700">Email:</strong>{' '}
-                              <a href={`mailto:${lawyer.email}`} className={isGeneralMatch ? 'text-purple-600 hover:text-purple-700 font-semibold break-all' : 'text-blue-600 hover:text-blue-700 font-semibold break-all'}>
-                                {lawyer.email}
-                              </a>
-                            </p>
-                          )}
-                          {lawyer.website && (
-                            <p>
-                              <strong className="text-gray-700">Website:</strong>{' '}
-                              <a
-                                href={lawyer.website.startsWith('http') ? lawyer.website : `https://${lawyer.website}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className={isGeneralMatch ? 'text-purple-600 hover:text-purple-700 font-semibold break-all' : 'text-blue-600 hover:text-blue-700 font-semibold break-all'}
-                              >
-                                {lawyer.website} →
-                              </a>
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Lawyer Card Footer */}
-                    <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 flex gap-3 flex-wrap">
-                      {lawyer.phone && (
-                        <a
-                          href={`tel:${lawyer.phone}`}
-                          className={`flex-1 min-w-[150px] px-4 py-2 text-white rounded-lg transition font-bold text-center text-sm ${tierButtonColor}`}
-                        >
-                          Call Now
-                        </a>
-                      )}
-                      {lawyer.email && (
-                        <a
-                          href={`mailto:${lawyer.email}?subject=Legal Consultation Inquiry`}
-                          className={`flex-1 min-w-[150px] px-4 py-2 rounded-lg hover:bg-gray-100 transition font-bold text-center text-sm`}
-                          style={{
-                            border: `2px solid ${tierColor === 'purple' ? '#c084fc' : '#60a5fa'}`,
-                            color: tierColor === 'purple' ? '#a855f7' : '#3b82f6'
-                          }}
-                        >
-                          Send Email
-                        </a>
-                      )}
-                      {lawyer.latitude && lawyer.longitude && (
-                        <button
-                          onClick={() => handleTrackLawFirm(lawyer)}
-                          disabled={showMapModal}
-                          className={`flex-1 min-w-[150px] px-4 py-2 text-white rounded-lg transition font-bold text-center text-sm disabled:opacity-50 disabled:cursor-not-allowed ${tierButtonColor}`}
-                        >
-                          Track on Maps
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          ) : null}
-
-          {/* ABSOLUTE FALLBACK: If we have recommendations but nothing was displayed */}
-          {((!results.exactMatches || results.exactMatches.length === 0) && 
-            (!results.alternatives || results.alternatives.length === 0) && 
-            (!results.recommendations || results.recommendations.length === 0)) &&
-           (results.totalRecommendations ?? 0) > 0 ? (
-            <div className="bg-green-50 border-l-4 border-green-600 p-6 rounded">
-              <h2 className="text-xl font-bold font-[family-name:var(--font-khand)] text-green-700 mb-2">
-                ✓ Law Firms Available
-              </h2>
-              <p className="text-gray-700 font-[family-name:var(--font-inter)] mb-4">
-                We found {results.totalRecommendations} law firm{(results.totalRecommendations ?? 1) !== 1 ? 's' : ''} that can assist with your legal matter. 
-                Please try searching again or contact our support team for more information.
-              </p>
-              <button
-                onClick={() => router.push('/form')}
-                className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-semibold"
-              >
-                Search Again
-              </button>
-            </div>
-          ) : null}
-        </div>
-      </section>
-
-      {/* Map Modal */}
-      {showMapModal && trackingLawyer && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-sm w-full">
-            {/* Modal Header */}
-            <div className="bg-red-600 text-white px-6 py-4 border-b border-red-200">
-              <h3 className="text-lg font-bold font-[family-name:var(--font-khand)]">
-                {trackingLawyer.firmName}
-              </h3>
-              <p className="text-sm text-red-100 font-[family-name:var(--font-inter)]">
-                {trackingLawyer.location}
-              </p>
-            </div>
-
-            {/* Modal Body */}
-            <div className="px-6 py-6">
-              <p className="text-sm text-gray-700 font-[family-name:var(--font-inter)] mb-6">
-                How would you like to view this law firm's location?
-              </p>
-
-              <div className="space-y-3">
-                {/* View on Map Button - No Location Request */}
-                <button
-                  onClick={handleViewOnMap}
-                  className="w-full px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-bold text-sm"
-                >
-                  View on Map
-                </button>
-
-                {/* Get Directions Button - With Location Request */}
-                <button
-                  onClick={handleGetDirections}
-                  disabled={gettingLocation}
-                  className="w-full px-4 py-3 border-2 border-green-600 text-green-600 rounded-lg hover:bg-green-50 transition font-bold text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {gettingLocation ? 'Getting Your Location...' : 'Get Directions'}
-                </button>
-
-                {/* Close Button */}
-                <button
-                  onClick={() => {
-                    setShowMapModal(false);
-                    setTrackingLawyer(null);
-                  }}
-                  className="w-full px-4 py-3 text-gray-600 rounded-lg hover:bg-gray-100 transition font-bold text-sm"
-                >
-                  Cancel
-                </button>
-              </div>
-            </div>
-
-            {/* Modal Footer */}
-            <div className="bg-gray-50 px-6 py-3 border-t border-gray-200 rounded-b-lg">
-              <p className="text-xs text-gray-600 font-[family-name:var(--font-inter)]">
-                <strong>"Get Directions"</strong> requires your location permission to show driving directions
-              </p>
             </div>
           </div>
         </div>
-      )}
+      </section>
 
-      {/* CTA Section */}
-      <section className="px-4 sm:px-6 py-12 bg-red-600 text-white">
-        <div className="max-w-4xl mx-auto text-center">
-          <h2 className="text-2xl sm:text-3xl font-bold font-[family-name:var(--font-khand)] mb-4">
-            Need a Different Search?
-          </h2>
-          <p className="text-red-100 font-[family-name:var(--font-inter)] mb-6">
-            Try searching with different practice areas or locations to find the right lawyer for your case.
+      <section className="px-4 sm:px-6 py-8 pb-20">
+        <div className="max-w-7xl mx-auto">
+          {allLawyers.length === 0 ? (
+            <div className="text-center py-20">
+              <div className="w-32 h-32 mx-auto mb-8 bg-gray-100 rounded-full flex items-center justify-center">
+                <svg className="w-16 h-16 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              </div>
+              <h3 className="text-2xl font-bold text-gray-900 mb-3">No Law Firms Found</h3>
+              <p className="text-gray-600 mb-8 max-w-md mx-auto">
+                We couldn't find law firms matching your criteria. Try adjusting your search or explore other locations.
+              </p>
+              <Link
+                href="/form"
+                className="inline-flex items-center gap-2 bg-gradient-to-r from-red-500 to-rose-500 text-white px-8 py-4 rounded-xl font-semibold hover:from-red-600 hover:to-rose-600 transition-all shadow-lg"
+              >
+                Try Another Search
+              </Link>
+            </div>
+          ) : (
+            <div className="space-y-12">
+              {matchingFirms.length > 0 && (
+                <div>
+                  <div className="flex items-center gap-3 mb-6">
+                    <div className="w-10 h-10 bg-gradient-to-br from-red-500 to-rose-500 rounded-xl flex items-center justify-center shadow-lg">
+                      <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                    </div>
+                    <div>
+                      <h2 className="text-2xl font-bold text-gray-900">Best Matches</h2>
+                      <p className="text-sm text-gray-500">Firms specializing in your selected practice area</p>
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                    {matchingFirms.map((lawyer, idx) => (
+                      <FirmCard
+                        key={idx}
+                        lawyer={lawyer}
+                        index={idx}
+                        isMatch={true}
+                        userPracticeAreas={results?.selectedPracticeAreas}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {otherFirms.length > 0 && (
+                <div>
+                  <div className="flex items-center gap-3 mb-6">
+                    <div className="w-10 h-10 bg-gray-200 rounded-xl flex items-center justify-center">
+                      <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                      </svg>
+                    </div>
+                    <div>
+                      <h2 className="text-2xl font-bold text-gray-900">
+                        {matchingFirms.length === 0 ? 'Available Firms' : 'Other Firms in Your Area'}
+                      </h2>
+                      <p className="text-sm text-gray-500">
+                        {matchingFirms.length === 0 
+                          ? `General practice and other law firms in ${results?.state}` 
+                          : 'Additional options you may consider'}
+                      </p>
+                    </div>
+                  </div>
+
+                  {matchingFirms.length === 0 && (
+                    <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-xl">
+                      <p className="text-amber-800 flex items-start gap-3">
+                        <span className="text-xl">💡</span>
+                        <span>
+                          <strong>No exact matches found</strong> for {results?.selectedPracticeAreas?.join(', ')} in {results?.lga}, {results?.state}. 
+                          Below are general practice firms that may be able to assist with your legal needs.
+                        </span>
+                      </p>
+                    </div>
+                  )}
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                    {otherFirms.map((lawyer, idx) => (
+                      <FirmCard
+                        key={idx}
+                        lawyer={lawyer}
+                        index={idx}
+                        isMatch={false}
+                        userPracticeAreas={results?.selectedPracticeAreas}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </section>
+
+      <section className="px-4 sm:px-6 py-12 bg-gradient-to-r from-red-500 to-rose-500">
+        <div className="max-w-4xl mx-auto text-center text-white">
+          <h3 className="text-2xl sm:text-3xl font-bold mb-4">
+            Need Help Choosing?
+          </h3>
+          <p className="text-red-100 mb-8 max-w-xl mx-auto">
+            Not sure which firm is right for your case? Our AI assistant can help you make the best choice.
           </p>
-          <Link href="/">
-            <button className="px-8 py-3 bg-white text-red-600 font-bold rounded-lg hover:bg-red-50 transition">
-              Start New Search
-            </button>
+          <Link
+            href="/form"
+            className="inline-flex items-center gap-2 bg-white text-red-600 px-8 py-4 rounded-xl font-semibold hover:bg-red-50 transition-all shadow-lg"
+          >
+            Start a New Search
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+            </svg>
           </Link>
         </div>
       </section>
-    </main>
+    </div>
   );
 }
 
+// ============================================================================
+// PAGE EXPORT
+// ============================================================================
+
 export default function ResultsPage() {
   return (
-    <Suspense fallback={<div>Loading results...</div>}>
+    <Suspense fallback={<LoadingSkeleton />}>
       <ResultsPageContent />
     </Suspense>
   );
 }
+

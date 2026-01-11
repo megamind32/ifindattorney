@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, Suspense } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useRouter } from 'next/navigation';
-import { getAllStates, getLGAsForState } from '@/lib/nigerian-lgas';
-import { determineLocationFromCoordinates, getConfidenceMessage } from '@/lib/location-mapping';
+import { determineLocationFromCoordinates } from '@/lib/location-mapping';
+import { nigerianLGAData } from '@/lib/nigerian-lgas';
 
 interface FormData {
   practiceAreas: string[];
@@ -24,11 +24,13 @@ const practiceAreas = [
   'Intellectual Property',
 ];
 
-const nigerianStates = getAllStates();
+// Nigerian states for manual selection
+const nigerianStates = Object.keys(nigerianLGAData).sort();
 
 function FormPageContent() {
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState(1);
+  const [showManualLocation, setShowManualLocation] = useState(false);
 
   const [formData, setFormData] = useState<FormData>({
     practiceAreas: [],
@@ -41,6 +43,7 @@ function FormPageContent() {
   const [error, setError] = useState('');
   const [gettingLocation, setGettingLocation] = useState(false);
   const [locationSuccess, setLocationSuccess] = useState(false);
+  const [locationAttempted, setLocationAttempted] = useState(false);
 
   const handlePracticeAreaChange = (area: string) => {
     setFormData((prev) => {
@@ -66,25 +69,31 @@ function FormPageContent() {
     setError('');
   };
 
-  const handleStateChange = (state: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      state,
-      lga: '', // Reset LGA when state changes
-    }));
-    setLocationSuccess(false);
-  };
+  // Auto-detect location when entering Step 2
+  useEffect(() => {
+    if (currentStep === 2 && !locationAttempted && !locationSuccess) {
+      handleUseLocation();
+    }
+  }, [currentStep, locationAttempted, locationSuccess]);
 
   const handleUseLocation = async () => {
     setGettingLocation(true);
     setError('');
     setLocationSuccess(false);
+    setLocationAttempted(true);
 
     if (!navigator.geolocation) {
-      setError('Geolocation is not supported by your browser.');
+      setError('Geolocation is not supported by your browser. Please try using a different browser.');
       setGettingLocation(false);
       return;
     }
+
+    // Use high accuracy and shorter timeout for faster response
+    const options = {
+      enableHighAccuracy: true,
+      timeout: 10000,
+      maximumAge: 60000 // Cache location for 1 minute
+    };
 
     navigator.geolocation.getCurrentPosition(
       (position) => {
@@ -104,10 +113,10 @@ function FormPageContent() {
             setLocationSuccess(true);
             setError('');
           } else {
-            setError('Could not determine your location. Please select manually.');
+            setError('Could not determine your location within Nigeria. Please ensure you are in Nigeria and try again.');
           }
         } catch (err) {
-          setError('Error processing location data. Please select manually.');
+          setError('Error processing location data. Please try again.');
           console.error('Location error:', err);
         }
         setGettingLocation(false);
@@ -116,19 +125,20 @@ function FormPageContent() {
         console.error('Geolocation error:', error);
         switch (error.code) {
           case error.PERMISSION_DENIED:
-            setError('Location permission denied. Please enable location access in your browser settings.');
+            setError('Location permission denied. Please enable location access in your browser settings and refresh the page.');
             break;
           case error.POSITION_UNAVAILABLE:
-            setError('Location information is unavailable. Please select manually.');
+            setError('Location information is unavailable. Please ensure your device has GPS/location services enabled.');
             break;
           case error.TIMEOUT:
-            setError('Location request timed out. Please select manually.');
+            setError('Location request timed out. Please check your internet connection and try again.');
             break;
           default:
-            setError('Unable to get your location. Please select manually.');
+            setError('Unable to get your location. Please try again.');
         }
         setGettingLocation(false);
-      }
+      },
+      options
     );
   };
 
@@ -142,12 +152,8 @@ function FormPageContent() {
         return;
       }
     } else if (currentStep === 2) {
-      if (!formData.state) {
-        setError('Please select a state');
-        return;
-      }
-      if (!formData.lga) {
-        setError('Please select an LGA');
+      if (!locationSuccess || !formData.state || !formData.lga) {
+        setError('Please allow location access to continue. We need your location to find nearby lawyers.');
         return;
       }
     } else if (currentStep === 3) {
@@ -171,7 +177,7 @@ function FormPageContent() {
     setError('');
 
     try {
-      // Call the AI agent to search for law firms on Google Maps
+      // Store form data first (for fallback)
       const agentRequest = {
         state: formData.state,
         lga: formData.lga,
@@ -180,7 +186,16 @@ function FormPageContent() {
         legalIssue: formData.legalIssue,
       };
 
-      console.log('DEBUG: Sending request to AI agent:', agentRequest);
+      console.log('DEBUG: Form submission - Request:', agentRequest);
+      
+      // Store request in sessionStorage first (before API call)
+      if (typeof window !== 'undefined') {
+        sessionStorage.setItem('userFormData', JSON.stringify(agentRequest));
+        console.log('DEBUG: Form data stored in sessionStorage:', sessionStorage.getItem('userFormData'));
+      }
+
+      // Call the AI agent to search for law firms on Google Maps
+      console.log('DEBUG: Calling AI agent endpoint...');
       
       const agentResponse = await fetch('/api/search-lawyers-agent', {
         method: 'POST',
@@ -190,25 +205,30 @@ function FormPageContent() {
         body: JSON.stringify(agentRequest),
       });
 
-      if (!agentResponse.ok) {
-        throw new Error(`Agent request failed with status ${agentResponse.status}`);
+      if (agentResponse.ok) {
+        const agentData = await agentResponse.json();
+        console.log('DEBUG: Agent response received:', agentData);
+        
+        // Update sessionStorage with agent results
+        const dataWithResults = {
+          ...agentRequest,
+          agentResults: agentData,
+        };
+        
+        if (typeof window !== 'undefined') {
+          sessionStorage.setItem('userFormData', JSON.stringify(dataWithResults));
+          console.log('DEBUG: Form data updated with agent results');
+        }
+      } else {
+        console.warn(`DEBUG: Agent request failed with status ${agentResponse.status}, will use fallback on results page`);
       }
 
-      const agentData = await agentResponse.json();
-      console.log('DEBUG: Agent response:', agentData);
-
-      // Store both form data and agent results for results page
-      const dataToStore = {
-        ...agentRequest,
-        agentResults: agentData,
-      };
+      // Small delay to ensure sessionStorage is written before navigation
+      await new Promise(resolve => setTimeout(resolve, 100));
       
-      sessionStorage.setItem('userFormData', JSON.stringify(dataToStore));
-      console.log('DEBUG: Form data and agent results stored');
-
-      // Navigate to results page
+      // Navigate to results page (with or without agent results)
       console.log('DEBUG: Navigating to /results');
-      router.push('/results');
+      window.location.href = '/results'; // Use window.location instead of router.push for more reliable navigation
     } catch (err) {
       console.error('DEBUG: Error during submit:', err);
       setError(err instanceof Error ? err.message : 'An error occurred. Please try again.');
@@ -217,7 +237,6 @@ function FormPageContent() {
   };
 
   const progressPercentage = (currentStep / 4) * 100;
-  const availableLGAs = getLGAsForState(formData.state);
 
   return (
     <main className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-red-50/30 page-transition-enter">
@@ -331,110 +350,191 @@ function FormPageContent() {
             {currentStep === 2 && (
               <div className="space-y-6 animate-fadeIn">
                 <div>
-                  <h2 className="text-2xl font-bold font-[family-name:var(--font-playfair)] text-gray-900 mb-2">Your Location</h2>
-                  <p className="text-gray-600 font-[family-name:var(--font-poppins)]">Select your state and Local Government Area (LGA):</p>
-                </div>
-
-                {/* Use Location Button */}
-                <div className="p-6 bg-blue-50 border-2 border-blue-200 rounded-2xl">
-                  <button
-                    type="button"
-                    onClick={handleUseLocation}
-                    disabled={gettingLocation}
-                    className={`w-full py-4 px-6 rounded-2xl font-semibold font-[family-name:var(--font-poppins)] transition-all duration-300 flex items-center justify-center gap-2 ${
-                      gettingLocation
-                        ? 'bg-blue-300 text-white cursor-not-allowed'
-                        : locationSuccess
-                        ? 'bg-green-500 text-white hover:bg-green-600'
-                        : 'bg-blue-600 text-white hover:bg-blue-700'
-                    }`}
-                  >
-                    {gettingLocation ? (
-                      <>
-                        <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                        Getting your location...
-                      </>
-                    ) : locationSuccess ? (
-                      <>
-                        <span>✓</span>
-                        Location detected and set!
-                      </>
-                    ) : (
-                      <>
-                        <span>📍</span>
-                        Use my current location
-                      </>
-                    )}
-                  </button>
-                  <p className="text-xs text-gray-600 font-[family-name:var(--font-poppins)] mt-3 text-center">
-                    We'll automatically detect your state and LGA based on your GPS location
+                  <h2 className="text-2xl font-bold font-[family-name:var(--font-playfair)] text-gray-900 mb-2">
+                    {showManualLocation ? 'Select Your Location' : 'Detecting Your Location'}
+                  </h2>
+                  <p className="text-gray-600 font-[family-name:var(--font-poppins)]">
+                    {showManualLocation 
+                      ? 'Choose your state and local government area manually.'
+                      : 'We use your current location to find lawyers near you.'}
                   </p>
                 </div>
 
-                {/* State Selection */}
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 font-[family-name:var(--font-poppins)] mb-3">Nigerian State</label>
-                  {locationSuccess && (
-                    <div className="mb-3 p-3 bg-green-100 border-l-4 border-green-500 rounded">
-                      <p className="text-sm font-semibold text-green-700 font-[family-name:var(--font-poppins)]">
-                        ✓ Detected: {formData.state}
-                      </p>
+                {/* Manual Location Selection */}
+                {showManualLocation ? (
+                  <div className="space-y-4">
+                    {/* State Selection */}
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-2 font-[family-name:var(--font-poppins)]">
+                        State
+                      </label>
+                      <select
+                        name="state"
+                        value={formData.state}
+                        onChange={(e) => {
+                          setFormData(prev => ({
+                            ...prev,
+                            state: e.target.value,
+                            lga: '' // Reset LGA when state changes
+                          }));
+                          setError('');
+                        }}
+                        className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl font-[family-name:var(--font-poppins)] focus:border-red-500 focus:outline-none transition-all duration-300"
+                      >
+                        <option value="">Select a state...</option>
+                        {nigerianStates.map((state) => (
+                          <option key={state} value={state}>{state}</option>
+                        ))}
+                      </select>
                     </div>
-                  )}
-                  <select
-                    value={formData.state}
-                    onChange={(e) => handleStateChange(e.target.value)}
-                    className="w-full px-6 py-4 border-2 border-red-300 rounded-2xl font-[family-name:var(--font-poppins)] focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-100 transition-all duration-300 bg-white"
-                  >
-                    <option value="">Choose a state...</option>
-                    {nigerianStates.map((state) => (
-                      <option key={state} value={state}>
-                        {state}
-                      </option>
-                    ))}
-                  </select>
-                </div>
 
-                {/* LGA Selection */}
-                {formData.state && (
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 font-[family-name:var(--font-poppins)] mb-3">Local Government Area (LGA) in {formData.state}</label>
-                    {locationSuccess && (
-                      <div className="mb-3 p-3 bg-green-100 border-l-4 border-green-500 rounded">
-                        <p className="text-sm font-semibold text-green-700 font-[family-name:var(--font-poppins)]">
-                          ✓ Detected: {formData.lga}
+                    {/* LGA Selection */}
+                    {formData.state && (
+                      <div>
+                        <label className="block text-sm font-semibold text-gray-700 mb-2 font-[family-name:var(--font-poppins)]">
+                          Local Government Area (LGA)
+                        </label>
+                        <select
+                          name="lga"
+                          value={formData.lga}
+                          onChange={(e) => {
+                            setFormData(prev => ({
+                              ...prev,
+                              lga: e.target.value
+                            }));
+                            if (e.target.value) {
+                              setLocationSuccess(true);
+                            }
+                            setError('');
+                          }}
+                          className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl font-[family-name:var(--font-poppins)] focus:border-red-500 focus:outline-none transition-all duration-300"
+                        >
+                          <option value="">Select an LGA...</option>
+                          {nigerianLGAData[formData.state]?.lgas.map((lga) => (
+                            <option key={lga} value={lga}>{lga}</option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
+
+                    {/* Success indicator */}
+                    {locationSuccess && formData.state && formData.lga && (
+                      <div className="p-4 bg-green-50 border border-green-200 rounded-xl text-center">
+                        <p className="text-green-700 font-semibold font-[family-name:var(--font-poppins)]">
+                          ✓ Location set: {formData.lga}, {formData.state}
                         </p>
                       </div>
                     )}
-                    <div className="space-y-3 max-h-96 overflow-y-auto border border-gray-200 rounded-2xl p-4 bg-gray-50">
-                      {availableLGAs.map((lga) => (
-                        <label key={lga} className="group cursor-pointer flex items-center">
-                          <input
-                            type="radio"
-                            name="lga"
-                            value={lga}
-                            checked={formData.lga === lga}
-                            onChange={(e) => setFormData({...formData, lga: e.target.value})}
-                            className="sr-only"
-                          />
-                          <div className="w-5 h-5 border-2 border-gray-300 rounded-full flex items-center justify-center transition-all duration-200 group-hover:border-red-400"
-                               style={{
-                                 borderColor: formData.lga === lga ? '#dc2626' : 'currentColor',
-                                 backgroundColor: formData.lga === lga ? '#dc2626' : 'transparent'
-                               }}>
-                            {formData.lga === lga && (
-                              <div className="w-2 h-2 bg-white rounded-full"></div>
-                            )}
-                          </div>
-                          <span className="ml-3 font-semibold text-gray-900 font-[family-name:var(--font-poppins)] group-hover:text-red-600">{lga}</span>
-                        </label>
-                      ))}
+
+                    {/* Switch back to auto-detect */}
+                    <div className="text-center pt-4">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowManualLocation(false);
+                          setLocationAttempted(false);
+                          setError('');
+                        }}
+                        className="text-blue-600 hover:text-blue-800 font-semibold text-sm font-[family-name:var(--font-poppins)]"
+                      >
+                        ← Try automatic location detection
+                      </button>
                     </div>
-                    <p className="text-xs text-gray-500 font-[family-name:var(--font-poppins)] mt-2">
-                      {availableLGAs.length} Local Government Areas in {formData.state}
-                    </p>
                   </div>
+                ) : (
+                  /* Auto Location Detection */
+                  <>
+                    <div className={`p-8 rounded-3xl border-2 transition-all duration-500 ${
+                      locationSuccess 
+                        ? 'bg-green-50 border-green-300' 
+                        : gettingLocation 
+                        ? 'bg-blue-50 border-blue-300' 
+                        : 'bg-gray-50 border-gray-300'
+                    }`}>
+                      {gettingLocation ? (
+                        <div className="text-center">
+                          <div className="w-16 h-16 mx-auto mb-4 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                          <h3 className="text-xl font-bold text-blue-700 font-[family-name:var(--font-playfair)] mb-2">
+                            Detecting your location...
+                          </h3>
+                          <p className="text-gray-600 font-[family-name:var(--font-poppins)]">
+                            Please allow location access when prompted
+                          </p>
+                        </div>
+                      ) : locationSuccess ? (
+                        <div className="text-center">
+                          <div className="w-16 h-16 mx-auto mb-4 bg-green-500 rounded-full flex items-center justify-center">
+                            <span className="text-3xl text-white">✓</span>
+                          </div>
+                          <h3 className="text-xl font-bold text-green-700 font-[family-name:var(--font-playfair)] mb-2">
+                            Location Detected!
+                          </h3>
+                          <div className="bg-white rounded-2xl p-4 mt-4 inline-block">
+                            <p className="text-lg font-semibold text-gray-900 font-[family-name:var(--font-poppins)]">
+                              📍 {formData.lga}, {formData.state}
+                            </p>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="text-center">
+                          <div className="w-16 h-16 mx-auto mb-4 bg-gray-300 rounded-full flex items-center justify-center">
+                            <span className="text-3xl">📍</span>
+                          </div>
+                          <h3 className="text-xl font-bold text-gray-700 font-[family-name:var(--font-playfair)] mb-2">
+                            Location Required
+                          </h3>
+                          <p className="text-gray-600 font-[family-name:var(--font-poppins)] mb-4">
+                            Click below to detect your location
+                          </p>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setLocationAttempted(false);
+                              handleUseLocation();
+                            }}
+                            className="px-8 py-4 bg-blue-600 text-white font-bold rounded-2xl hover:bg-blue-700 transition-all duration-300 font-[family-name:var(--font-poppins)]"
+                          >
+                            📍 Detect My Location
+                          </button>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Retry and Manual Selection buttons (only show if failed) */}
+                    {!gettingLocation && !locationSuccess && locationAttempted && (
+                      <div className="text-center space-y-4">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setLocationAttempted(false);
+                            setError('');
+                            handleUseLocation();
+                          }}
+                          className="px-6 py-3 bg-gray-200 text-gray-700 font-semibold rounded-xl hover:bg-gray-300 transition-all duration-300 font-[family-name:var(--font-poppins)] mr-4"
+                        >
+                          🔄 Try Again
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setShowManualLocation(true);
+                            setError('');
+                          }}
+                          className="px-6 py-3 bg-red-600 text-white font-semibold rounded-xl hover:bg-red-700 transition-all duration-300 font-[family-name:var(--font-poppins)]"
+                        >
+                          📝 Enter Location Manually
+                        </button>
+                      </div>
+                    )}
+                  </>
                 )}
+
+                {/* Location Privacy Notice */}
+                <div className="p-4 bg-blue-50 border-l-4 border-blue-500 rounded-r-xl">
+                  <p className="text-sm text-blue-800 font-[family-name:var(--font-poppins)]">
+                    <strong>🔒 Privacy:</strong> Your location is only used to find lawyers near you and is not stored permanently.
+                  </p>
+                </div>
               </div>
             )}
 
