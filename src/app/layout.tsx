@@ -57,9 +57,6 @@ export default function RootLayout({
               </div>
             </a>
             <div className="flex gap-8">
-              <a href="/about" className="font-[family-name:var(--font-inter)] hover:text-red-600">
-                About
-              </a>
               <a href="/projects" className="font-[family-name:var(--font-inter)] hover:text-red-600">
                 Projects
               </a>

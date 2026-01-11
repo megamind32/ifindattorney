@@ -1,7 +1,8 @@
-'use client';
 
+'use client';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import HamburgerMenu from './HamburgerMenu';
 
 const backgroundImages = [
   '/benyamin-bohlouli-LpEyM8nksws-unsplash.jpg',
@@ -42,8 +43,29 @@ export default function Home() {
 
   return (
     <main className="min-h-screen bg-white page-transition-enter">
+      {/* Hamburger Menu and About Creator - Top Right */}
+      <div className="absolute top-4 right-4 sm:top-6 sm:right-6 z-50 flex gap-2 items-center">
+        <a 
+          href="/creator"
+          className="inline-flex items-center gap-2 bg-white/90 backdrop-blur-sm text-gray-700 font-medium px-4 py-2 rounded-full shadow-lg hover:shadow-xl hover:bg-red-50 hover:text-red-600 transition-all duration-300 group font-[family-name:var(--font-poppins)] text-sm border border-gray-100"
+        >
+          <div className="w-6 h-6 rounded-full bg-gradient-to-br from-red-500 to-red-600 flex items-center justify-center">
+            <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
+            </svg>
+          </div>
+          <span>About Creator</span>
+          <svg className="w-4 h-4 transition-transform group-hover:translate-x-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+          </svg>
+        </a>
+        <HamburgerMenu />
+      </div>
+      {/* Anchor for Contact Creator */}
+      <div id="contact-creator"></div>
+
       {/* Top Quarter - Rotating Image Section with Unique Shape and Overlapping Heading */}
-      <section className="relative w-full h-80 sm:h-96 overflow-hidden bg-gray-900 shadow-lg" style={{ clipPath: 'polygon(0 0, 100% 0, 100% 85%, 0 100%)' }}>
+      <section id="find-law-firm" className="relative w-full h-80 sm:h-96 overflow-hidden bg-gray-900 shadow-lg" style={{ clipPath: 'polygon(0 0, 100% 0, 100% 85%, 0 100%)' }}>
         <div className="absolute inset-0">
           <img
             src={backgroundImages[currentImageIndex]}
@@ -78,7 +100,7 @@ export default function Home() {
       </section>
 
       {/* Main Content */}
-      <section className="px-4 sm:px-6 py-12 max-w-5xl mx-auto">
+      <section id="calculate-fees" className="px-4 sm:px-6 py-12 max-w-5xl mx-auto">
         {/* Feature Cards Intro - Stylish Heading */}
         <div className="mb-16 content-transition">
           <div className="relative inline-block">
@@ -96,13 +118,13 @@ export default function Home() {
         {/* Feature Cards - NBA Style Design */}
         <div className="space-y-6 content-transition">
           {/* Card 1: Find a Lawyer - NBA Style Hero Card */}
-          <div className="relative overflow-hidden bg-gradient-to-br from-red-600 via-red-700 to-red-800 rounded-3xl shadow-xl hover:shadow-2xl transition-all duration-300 cursor-pointer group"
-               onClick={handleFindLawyer}>
+          <div id="find-law-firm-card" className="relative overflow-hidden bg-gradient-to-br from-red-600 via-red-700 to-red-800 rounded-3xl shadow-xl hover:shadow-2xl transition-all duration-300 cursor-pointer group"
+            onClick={handleFindLawyer}>
             {/* Decorative Elements */}
             <div className="absolute top-0 right-0 w-64 h-64 bg-red-500/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
             <div className="absolute bottom-0 left-0 w-48 h-48 bg-red-400/15 rounded-full blur-2xl translate-y-1/2 -translate-x-1/2"></div>
             
-            <div className="relative z-10 p-8 sm:p-10 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-8">
+            <div id="verify-lawyer" className="relative z-10 p-8 sm:p-10 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-8">
               <div className="flex-1">
                 {/* Badge */}
                 <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm rounded-full px-4 py-2 mb-6">
@@ -167,8 +189,8 @@ export default function Home() {
           </div>
 
           {/* Card 2: Verify Lawyer - NBA Style Hero Card */}
-          <div className="relative overflow-hidden bg-gradient-to-br from-red-600 via-red-700 to-red-800 rounded-3xl shadow-xl hover:shadow-2xl transition-all duration-300 cursor-pointer group"
-               onClick={handleVerifyLawyer}>
+          <div id="verify-lawyer-card" className="relative overflow-hidden bg-gradient-to-br from-red-600 via-red-700 to-red-800 rounded-3xl shadow-xl hover:shadow-2xl transition-all duration-300 cursor-pointer group"
+            onClick={handleVerifyLawyer}>
             {/* Decorative Elements */}
             <div className="absolute top-0 right-0 w-64 h-64 bg-red-500/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
             <div className="absolute bottom-0 left-0 w-48 h-48 bg-red-400/15 rounded-full blur-2xl translate-y-1/2 -translate-x-1/2"></div>
@@ -287,8 +309,8 @@ export default function Home() {
           </div>
 
           {/* Card 3: Know Fair Fees - NBA Style Hero Card */}
-          <div className="relative overflow-hidden bg-gradient-to-br from-red-600 via-red-700 to-red-800 rounded-3xl shadow-xl hover:shadow-2xl transition-all duration-300 cursor-pointer group"
-               onClick={handleCheckFees}>
+          <div id="calculate-fees-card" className="relative overflow-hidden bg-gradient-to-br from-red-600 via-red-700 to-red-800 rounded-3xl shadow-xl hover:shadow-2xl transition-all duration-300 cursor-pointer group"
+            onClick={handleCheckFees}>
             {/* Decorative Elements */}
             <div className="absolute top-0 right-0 w-64 h-64 bg-red-500/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
             <div className="absolute bottom-0 left-0 w-48 h-48 bg-red-400/15 rounded-full blur-2xl translate-y-1/2 -translate-x-1/2"></div>
@@ -357,34 +379,252 @@ export default function Home() {
             </div>
           </div>
         </div>
+      </section>
 
-        {/* Why Use Section - Unique Style */}
-        <div className="mt-16 pt-12 border-t-4 border-dashed border-red-200 content-transition">
-          <h2 className="text-2xl sm:text-3xl font-bold font-[family-name:var(--font-khand)] text-gray-900 mb-1">
-            Why Trust iFind<span className="text-red-600">?</span>
-          </h2>
-          <p className="text-gray-600 text-sm mb-6 font-[family-name:var(--font-inter)]">Everything a Nigerian needs for legal clarity</p>
-          
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            <div className="text-center">
-              <div className="text-3xl mb-2">⚡</div>
-              <p className="text-xs font-bold text-gray-900 font-[family-name:var(--font-khand)]">Quick Match</p>
-            </div>
-            <div className="text-center">
-              <div className="text-3xl mb-2">🛡️</div>
-              <p className="text-xs font-bold text-gray-900 font-[family-name:var(--font-khand)]">Verified</p>
-            </div>
-            <div className="text-center">
-              <div className="text-3xl mb-2">💯</div>
-              <p className="text-xs font-bold text-gray-900 font-[family-name:var(--font-khand)]">Fair Rates</p>
-            </div>
-            <div className="text-center">
-              <div className="text-3xl mb-2">🇳🇬</div>
-              <p className="text-xs font-bold text-gray-900 font-[family-name:var(--font-khand)]">Lagos First</p>
-            </div>
-          </div>
+      {/* ============================================
+          MISSION, CHALLENGES & HELP SECTION
+          Scroll-reveal animations, hover interactions
+          ============================================ */}
+      <section className="relative bg-gradient-to-b from-white via-gray-50/50 to-white py-24 overflow-hidden">
+        {/* Subtle background decoration */}
+        <div className="absolute inset-0 pointer-events-none">
+          <div className="absolute top-0 left-1/4 w-96 h-96 bg-red-50 rounded-full blur-3xl opacity-40"></div>
+          <div className="absolute bottom-0 right-1/4 w-80 h-80 bg-red-100/30 rounded-full blur-3xl opacity-30"></div>
         </div>
 
+        <div className="relative max-w-5xl mx-auto px-4 sm:px-6">
+          
+          {/* ==================== OUR MISSION ==================== */}
+          <div id="our-mission" className="mb-28 group">
+            <div className="relative">
+              {/* Decorative line - reveals on scroll */}
+              <div className="absolute -left-4 top-0 w-1 h-full bg-gradient-to-b from-red-500 via-red-400 to-transparent rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-700"></div>
+              
+              <span className="inline-block text-xs font-bold tracking-[0.3em] text-red-500 uppercase mb-4 font-[family-name:var(--font-poppins)]">
+                01 — Our Mission
+              </span>
+              
+              <h2 className="text-4xl sm:text-5xl lg:text-6xl font-bold font-[family-name:var(--font-playfair)] text-gray-900 mb-10 leading-[1.1] italic">
+                Demystifying law.
+                <span className="block text-transparent bg-clip-text bg-gradient-to-r from-red-600 to-red-500 mt-2">
+                  One search at a time.
+                </span>
+              </h2>
+              
+              <div className="space-y-6 max-w-3xl">
+                <p className="text-lg sm:text-xl text-gray-700 font-[family-name:var(--font-poppins)] leading-relaxed hover:text-gray-900 transition-colors duration-300">
+                  Think about the convenience of the Uber app, the Glovo app, AirBNB, airplane booking sites or even Google Maps generally. They make things convenient right?
+                </p>
+                <p className="text-lg text-gray-600 font-[family-name:var(--font-poppins)] leading-relaxed hover:text-gray-800 transition-colors duration-300">
+                  Well, let's try to offer something of that nature to Nigerians in relation to law. Now, we can't help you book lawyers online but we can sure help you find them or know what they may charge!
+                  <span className="inline-block ml-2 text-red-500 font-semibold hover:scale-110 transition-transform duration-300 cursor-default">Cool right?</span>
+                </p>
+                <p className="text-base text-gray-600 font-[family-name:var(--font-poppins)] leading-relaxed hover:text-gray-800 transition-colors duration-300">
+                  Law is a very mystified field. Rarely do learned and more educated men understand the complexities involved in finding and selecting a suitable law firm. These complexities are more apparent to the less educated members of the society
+                  <span className="text-gray-500 italic"> (Those with less access to justice).</span>
+                </p>
+                <p className="text-base text-gray-700 font-[family-name:var(--font-poppins)] leading-relaxed font-medium">
+                  We want to demystify the legal profession to acceptable extents in such a way as to ensure the dignity of the profession is maintained and the general populace of Nigeria have a better understanding of where they can find convenient legal services to suit their needs and what to expect in terms of pricing.
+                </p>
+              </div>
+              
+              {/* Three Key Services - reveals on scroll */}
+              <div className="mt-14">
+                <h3 className="text-2xl font-bold font-[family-name:var(--font-playfair)] text-gray-900 mb-8 italic">
+                  We offer to you <span className="text-transparent bg-clip-text bg-gradient-to-r from-red-600 to-red-500">three key services</span>
+                </h3>
+                
+                <div className="space-y-8">
+                  {/* Service 1 - Recommendation Tool */}
+                  <div className="group/service relative pl-8 border-l-2 border-red-200 hover:border-red-500 transition-colors duration-500">
+                    <div className="absolute left-0 top-0 -translate-x-1/2 w-4 h-4 rounded-full bg-red-500 opacity-0 group-hover/service:opacity-100 transition-opacity duration-300"></div>
+                    <span className="inline-block text-xs font-bold tracking-wider text-red-400 uppercase mb-2 font-[family-name:var(--font-poppins)]">
+                      Service One
+                    </span>
+                    <h4 className="text-xl font-bold text-gray-900 font-[family-name:var(--font-poppins)] mb-3 group-hover/service:text-red-600 transition-colors duration-300">
+                      Lawyer Recommendation Tool
+                    </h4>
+                    <p className="text-base text-gray-600 font-[family-name:var(--font-poppins)] leading-relaxed">
+                      Our recommendation tool helps recommend lawyers in your exact location to you who will be able to solve your specific legal issue. There are thousands of lawyers in Nigeria and each have their area of expertise and specialisation. We try our best to match you with the closest lawyer in your location who will be able to give you what you want.
+                    </p>
+                    <p className="text-sm text-gray-500 font-[family-name:var(--font-poppins)] mt-3 italic opacity-0 group-hover/service:opacity-100 transition-opacity duration-500">
+                      Beware though, our tool only tells you where to go and what to expect. We're not exactly assuring you of the quality of service delivered there. Maybe in some future update….
+                    </p>
+                  </div>
+                  
+                  {/* Service 2 - Verification Tool */}
+                  <div className="group/service relative pl-8 border-l-2 border-red-200 hover:border-red-500 transition-colors duration-500">
+                    <div className="absolute left-0 top-0 -translate-x-1/2 w-4 h-4 rounded-full bg-red-500 opacity-0 group-hover/service:opacity-100 transition-opacity duration-300"></div>
+                    <span className="inline-block text-xs font-bold tracking-wider text-red-400 uppercase mb-2 font-[family-name:var(--font-poppins)]">
+                      Service Two
+                    </span>
+                    <h4 className="text-xl font-bold text-gray-900 font-[family-name:var(--font-poppins)] mb-3 group-hover/service:text-red-600 transition-colors duration-300">
+                      Lawyer Practice Identification Tool
+                    </h4>
+                    <p className="text-base text-gray-600 font-[family-name:var(--font-poppins)] leading-relaxed">
+                      Now here's what you may not know. All lawyers called to the Nigerian bar have their names on the roll of legal practitioners kept at the Supreme Court of Nigeria. A copy of the said data is periodically forwarded to the Nigerian Bar Association who then makes it available publicly on their website for members of the public to confirm the year of call and call number of anyone who claims to be a legal practitioner in Nigeria.
+                    </p>
+                    <p className="text-base text-gray-600 font-[family-name:var(--font-poppins)] leading-relaxed mt-3">
+                      So yes, there is already a separate site where you can confirm the names of lawyers in Nigeria. So why use our tool instead?
+                    </p>
+                    <p className="text-sm text-gray-500 font-[family-name:var(--font-poppins)] mt-3 italic opacity-0 group-hover/service:opacity-100 transition-opacity duration-500">
+                      I don't know, the fact that you've read up to this point means you may not have known in the first place. So I just made things easier for you. You're welcome :)
+                    </p>
+                  </div>
+                  
+                  {/* Service 3 - Fee Calculator */}
+                  <div className="group/service relative pl-8 border-l-2 border-red-200 hover:border-red-500 transition-colors duration-500">
+                    <div className="absolute left-0 top-0 -translate-x-1/2 w-4 h-4 rounded-full bg-red-500 opacity-0 group-hover/service:opacity-100 transition-opacity duration-300"></div>
+                    <span className="inline-block text-xs font-bold tracking-wider text-red-400 uppercase mb-2 font-[family-name:var(--font-poppins)]">
+                      Service Three
+                    </span>
+                    <h4 className="text-xl font-bold text-gray-900 font-[family-name:var(--font-poppins)] mb-3 group-hover/service:text-red-600 transition-colors duration-300">
+                      Legal Fees Calculation Tool
+                    </h4>
+                    <p className="text-base text-gray-600 font-[family-name:var(--font-poppins)] leading-relaxed">
+                      Again, this is based on public data. But if you didn't know before, you're welcome again ;) The Legal Practitioners Remuneration Order 2023 regulates the minimum fees chargeable by lawyers <span className="text-red-500 font-medium">(Not maximum oo)</span> in respect of various transactions and depending on your state.
+                    </p>
+                    <p className="text-base text-gray-600 font-[family-name:var(--font-poppins)] leading-relaxed mt-3">
+                      <span className="text-gray-700 font-medium">Sorry Lagosians and Abuja users, you're paying a lot more</span> <span className="italic text-gray-500">(It is the law!)</span>. Use this tool to know how much to expect in terms of fees payable to your lawyer.
+                    </p>
+                    <p className="text-sm text-gray-500 font-[family-name:var(--font-poppins)] mt-3 italic opacity-0 group-hover/service:opacity-100 transition-opacity duration-500">
+                      Of course you should know that we're not telling you what firms will charge you as a matter of fact. Might be more, might be less. But hey, just know what to expect.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* ==================== OUR CHALLENGES ==================== */}
+          <div id="our-challenges" className="mb-28 group">
+            <div className="relative">
+              <div className="absolute -left-4 top-0 w-1 h-full bg-gradient-to-b from-gray-400 via-gray-300 to-transparent rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-700"></div>
+              
+              <span className="inline-block text-xs font-bold tracking-[0.3em] text-gray-400 uppercase mb-4 font-[family-name:var(--font-poppins)]">
+                02 — Our Challenges
+              </span>
+              
+              <h2 className="text-4xl sm:text-5xl lg:text-6xl font-bold font-[family-name:var(--font-playfair)] text-gray-900 mb-6 leading-[1.1] italic">
+                We're not perfect.
+                <span className="block text-gray-400 mt-2 text-3xl sm:text-4xl lg:text-5xl">
+                  Yet.
+                </span>
+              </h2>
+              
+              <p className="text-lg text-gray-600 font-[family-name:var(--font-poppins)] leading-relaxed mb-10 max-w-2xl">
+                There are various limitations with this project
+              </p>
+              
+              <div className="space-y-8 max-w-3xl">
+                {/* Challenge 1 */}
+                <div className="group/item pl-8 border-l-2 border-gray-200 hover:border-red-400 transition-colors duration-300">
+                  <div className="flex items-start gap-4">
+                    <span className="flex-shrink-0 w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 font-bold text-sm font-[family-name:var(--font-poppins)] group-hover/item:bg-red-100 group-hover/item:text-red-600 transition-colors duration-300">1</span>
+                    <div>
+                      <p className="text-lg text-gray-700 font-[family-name:var(--font-poppins)] font-medium group-hover/item:text-gray-900 transition-colors leading-relaxed">
+                        Not all lawyers in Nigeria have law firms.
+                      </p>
+                      <p className="text-base text-gray-500 mt-2 font-[family-name:var(--font-poppins)] leading-relaxed">
+                        So for now we offer law firm recommendation and not lawyer recommendation.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Challenge 2 */}
+                <div className="group/item pl-8 border-l-2 border-gray-200 hover:border-red-400 transition-colors duration-300">
+                  <div className="flex items-start gap-4">
+                    <span className="flex-shrink-0 w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 font-bold text-sm font-[family-name:var(--font-poppins)] group-hover/item:bg-red-100 group-hover/item:text-red-600 transition-colors duration-300">2</span>
+                    <div>
+                      <p className="text-lg text-gray-700 font-[family-name:var(--font-poppins)] font-medium group-hover/item:text-gray-900 transition-colors leading-relaxed">
+                        Not all law firms in Nigeria have a digital presence.
+                      </p>
+                      <p className="text-base text-gray-500 mt-2 font-[family-name:var(--font-poppins)] leading-relaxed">
+                        Some aren't even captured on Google Maps or have websites so we might not be able to recommend all firms in your location.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Challenge 3 */}
+                <div className="group/item pl-8 border-l-2 border-gray-200 hover:border-red-400 transition-colors duration-300">
+                  <div className="flex items-start gap-4">
+                    <span className="flex-shrink-0 w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 font-bold text-sm font-[family-name:var(--font-poppins)] group-hover/item:bg-red-100 group-hover/item:text-red-600 transition-colors duration-300">3</span>
+                    <div>
+                      <p className="text-lg text-gray-700 font-[family-name:var(--font-poppins)] font-medium group-hover/item:text-gray-900 transition-colors leading-relaxed">
+                        We cannot tell you the quality of service to expect in these law firms.
+                      </p>
+                      <p className="text-base text-gray-500 mt-2 font-[family-name:var(--font-poppins)] leading-relaxed">
+                        We can only tell you where to go and what they do.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* ==================== HOW YOU CAN HELP ==================== */}
+          <div id="how-you-can-help" className="group">
+            <div className="relative">
+              <div className="absolute -left-4 top-0 w-1 h-full bg-gradient-to-b from-green-500 via-green-400 to-transparent rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-700"></div>
+              
+              <span className="inline-block text-xs font-bold tracking-[0.3em] text-green-600 uppercase mb-4 font-[family-name:var(--font-poppins)]">
+                03 — How You Can Help Us
+              </span>
+              
+              <h2 className="text-4xl sm:text-5xl lg:text-6xl font-bold font-[family-name:var(--font-playfair)] text-gray-900 mb-8 leading-[1.1] italic">
+                Only the lawyers
+                <span className="block text-transparent bg-clip-text bg-gradient-to-r from-green-600 to-green-500 mt-2">
+                  can help us!
+                </span>
+              </h2>
+              
+              <div className="space-y-6 max-w-3xl">
+                <p className="text-lg sm:text-xl text-gray-700 font-[family-name:var(--font-poppins)] leading-relaxed">
+                  We need more lawyers to put details of their firms online.
+                </p>
+                <p className="text-base text-gray-600 font-[family-name:var(--font-poppins)] leading-relaxed">
+                  They can do this by publishing their firm websites or opening social media and networking pages/accounts for their firms.
+                </p>
+                <p className="text-xl text-gray-900 font-[family-name:var(--font-poppins)] font-bold mt-8 hover:text-green-600 transition-colors duration-300 cursor-default">
+                  The more details of law firms available online, the more firms we can suggest to you.
+                </p>
+              </div>
+              
+              {/* CTA for lawyers - expands on hover */}
+              <div className="mt-12 flex flex-wrap gap-4">
+                <a 
+                  href="https://www.google.com/business/" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-3 bg-gradient-to-r from-green-600 to-green-500 text-white font-bold px-8 py-4 rounded-2xl hover:from-green-500 hover:to-green-400 transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105 group/btn font-[family-name:var(--font-poppins)]"
+                >
+                  Register Your Firm on Google
+                  <svg className="w-5 h-5 transition-transform group-hover/btn:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                  </svg>
+                </a>
+                <a 
+                  href="https://www.linkedin.com/company/setup/new/" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-3 bg-white border-2 border-green-500 text-green-600 font-bold px-8 py-4 rounded-2xl hover:bg-green-50 transition-all duration-300 shadow-md hover:shadow-lg hover:scale-105 group/btn font-[family-name:var(--font-poppins)]"
+                >
+                  Create LinkedIn Page
+                  <svg className="w-5 h-5 transition-transform group-hover/btn:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                  </svg>
+                </a>
+              </div>
+            </div>
+          </div>
+          
+        </div>
+      </section>
+
+      <section className="px-4 sm:px-6 pb-12 max-w-5xl mx-auto">
         {/* Disclaimer */}
         <div className="mt-12 p-5 bg-red-50 border-l-4 border-red-600 rounded-r-2xl text-xs text-gray-700 font-[family-name:var(--font-inter)] content-transition">
           <p>
