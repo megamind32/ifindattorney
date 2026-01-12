@@ -31,6 +31,8 @@ function FormPageContent() {
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState(1);
   const [showManualLocation, setShowManualLocation] = useState(false);
+  const [showLocationModal, setShowLocationModal] = useState(false);
+  const [permissionStatus, setPermissionStatus] = useState<'granted' | 'denied' | 'prompt' | null>(null);
 
   const [formData, setFormData] = useState<FormData>({
     practiceAreas: [],
@@ -44,6 +46,22 @@ function FormPageContent() {
   const [gettingLocation, setGettingLocation] = useState(false);
   const [locationSuccess, setLocationSuccess] = useState(false);
   const [locationAttempted, setLocationAttempted] = useState(false);
+
+  // Check permission status on component mount
+  useEffect(() => {
+    checkLocationPermission();
+  }, []);
+
+  const checkLocationPermission = async () => {
+    try {
+      if ('permissions' in navigator) {
+        const result = await navigator.permissions.query({ name: 'geolocation' });
+        setPermissionStatus(result.state as 'granted' | 'denied' | 'prompt');
+      }
+    } catch (err) {
+      console.log('Permission check not supported');
+    }
+  };
 
   const handlePracticeAreaChange = (area: string) => {
     setFormData((prev) => {
@@ -130,7 +148,7 @@ function FormPageContent() {
         
         switch (error.code) {
           case error.PERMISSION_DENIED:
-            errorMessage = 'Location permission denied. Please:\n1. Check your browser location settings\n2. Allow location access for this website\n3. Try again\n\nAlternatively, you can select your location manually below.';
+            errorMessage = '📍 Location Access Denied\n\nTo enable location:\n\n📱 iPhone/iPad:\n1. Open Settings\n2. Find "Safari" (or your browser)\n3. Tap "Location"\n4. Select "While Using the App"\n5. Return here and try again\n\n🤖 Android:\n1. Open Settings\n2. Find "Apps" or "Permissions"\n3. Select this app\n4. Tap "Permissions"\n5. Enable "Location"\n6. Return here and try again\n\nAlternatively, select your location manually below.';
             setShowManualLocation(true);
             break;
           case error.POSITION_UNAVAILABLE:
@@ -499,8 +517,7 @@ function FormPageContent() {
                           <button
                             type="button"
                             onClick={() => {
-                              setLocationAttempted(false);
-                              handleUseLocation();
+                              setShowLocationModal(true);
                             }}
                             className="px-8 py-4 bg-blue-600 text-white font-bold rounded-2xl hover:bg-blue-700 transition-all duration-300 font-[family-name:var(--font-poppins)]"
                           >
@@ -518,7 +535,7 @@ function FormPageContent() {
                           onClick={() => {
                             setLocationAttempted(false);
                             setError('');
-                            handleUseLocation();
+                            setShowLocationModal(true);
                           }}
                           className="px-6 py-3 bg-gray-200 text-gray-700 font-semibold rounded-xl hover:bg-gray-300 transition-all duration-300 font-[family-name:var(--font-poppins)] mr-4"
                         >
@@ -654,6 +671,74 @@ function FormPageContent() {
           </form>
         </div>
       </section>
+
+      {/* Location Permission Modal */}
+      {showLocationModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full p-8 space-y-6 animate-pulse">
+            <div className="text-center">
+              <div className="text-5xl mb-4">📍</div>
+              <h2 className="text-2xl font-bold text-gray-900 mb-2 font-[family-name:var(--font-playfair)]">
+                Share Your Location
+              </h2>
+              <p className="text-gray-600 text-sm font-[family-name:var(--font-poppins)]">
+                We'll use your location to find the best lawyers near you
+              </p>
+            </div>
+
+            <div className="bg-blue-50 border-l-4 border-blue-600 p-4 rounded space-y-3">
+              <p className="font-semibold text-gray-800 text-sm">What happens next:</p>
+              <ol className="space-y-2 text-xs text-gray-700 font-[family-name:var(--font-poppins)]">
+                <li className="flex gap-2">
+                  <span className="text-blue-600 font-bold">1.</span>
+                  <span>You'll see a permission request popup</span>
+                </li>
+                <li className="flex gap-2">
+                  <span className="text-blue-600 font-bold">2.</span>
+                  <span>Tap <strong>"Allow" or "Allow Once"</strong></span>
+                </li>
+                <li className="flex gap-2">
+                  <span className="text-blue-600 font-bold">3.</span>
+                  <span>We'll instantly find your best matches</span>
+                </li>
+              </ol>
+            </div>
+
+            <div className="space-y-3">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowLocationModal(false);
+                  setLocationAttempted(false);
+                  handleUseLocation();
+                }}
+                className="w-full px-6 py-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition-all duration-300 font-[family-name:var(--font-poppins)]"
+              >
+                ✓ Allow Location Access
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowLocationModal(false);
+                  setShowManualLocation(true);
+                }}
+                className="w-full px-6 py-3 bg-gray-200 text-gray-700 font-semibold rounded-xl hover:bg-gray-300 transition-all duration-300 font-[family-name:var(--font-poppins)]"
+              >
+                📋 Select Location Manually
+              </button>
+            </div>
+
+            {permissionStatus === 'denied' && (
+              <div className="bg-red-50 border-l-4 border-red-600 p-4 rounded">
+                <p className="text-xs text-red-700 font-[family-name:var(--font-poppins)]">
+                  <strong>Access Denied Previously?</strong><br/>
+                  Go to Settings → Location and enable for this app
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </main>
   );
 }

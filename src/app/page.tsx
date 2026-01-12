@@ -371,7 +371,7 @@ export default function Home() {
       </section>
 
       {/* Fade Transition Overlay - Mobile Only */}
-      <div className="sm:hidden relative h-8 bg-gradient-to-b from-white via-white/70 to-transparent pointer-events-none"></div>
+      <div className="sm:hidden relative h-2 bg-gradient-to-b from-white via-white/70 to-transparent pointer-events-none"></div>
 
       {/* ============================================
           MISSION, CHALLENGES & HELP SECTION
