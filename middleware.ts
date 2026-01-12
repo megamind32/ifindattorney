@@ -2,14 +2,18 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
 export function middleware(request: NextRequest) {
-  const response = NextResponse.next();
+  // Clone the request response
+  const response = NextResponse.next({
+    request: {
+      headers: request.headers,
+    },
+  });
   
-  // Explicitly allow geolocation API
+  // Set headers explicitly on response
   response.headers.set('Permissions-Policy', 'geolocation=(self)');
   response.headers.set('Feature-Policy', 'geolocation "self"');
-  
-  // Debug header to verify middleware is running
   response.headers.set('X-Middleware-Applied', 'true');
+  response.headers.set('X-Content-Type-Options', 'nosniff');
   
   return response;
 }
