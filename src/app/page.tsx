@@ -118,14 +118,14 @@ export default function Home() {
         {/* Feature Cards - NBA Style Design */}
         <div className="space-y-6 content-transition">
           {/* Card 1: Find a Lawyer - NBA Style Hero Card */}
-          <div id="find-law-firm-card" className="relative overflow-hidden bg-gradient-to-br from-red-600 via-red-700 to-red-800 rounded-3xl shadow-xl hover:shadow-2xl transition-all duration-300 cursor-pointer group"
+          <div id="find-law-firm-card" className="relative overflow-hidden bg-gradient-to-br from-red-600 via-red-700 to-red-800 rounded-3xl shadow-xl hover:shadow-2xl transition-all duration-300 cursor-pointer group min-h-[320px] sm:min-h-[340px] lg:min-h-[360px]"
             onClick={handleFindLawyer}>
             {/* Decorative Elements */}
             <div className="absolute top-0 right-0 w-64 h-64 bg-red-500/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
             <div className="absolute bottom-0 left-0 w-48 h-48 bg-red-400/15 rounded-full blur-2xl translate-y-1/2 -translate-x-1/2"></div>
             
             <div id="verify-lawyer" className="relative z-10 p-4 sm:p-8 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 lg:gap-8">
-              <div className="flex-1 w-full">
+              <div className="flex-1 w-full p-1 sm:p-3">
                 {/* Badge */}
                 <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm rounded-full px-4 py-2 mb-6">
                   <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -172,7 +172,7 @@ export default function Home() {
               </div>
               
               {/* Search Illustration - always visible, responsive */}
-              <div className="flex items-center justify-center w-full h-48 sm:h-64 lg:w-1/2 lg:h-72 mt-4 lg:mt-0">
+              <div className="flex items-center justify-center w-full h-56 sm:h-72 lg:w-1/2 lg:h-80 mt-6 lg:mt-0">
                 <div className="absolute inset-0 bg-white/10 rounded-full blur-3xl scale-75"></div>
                 <img 
                   src="/search.svg" 
@@ -187,14 +187,14 @@ export default function Home() {
           </div>
 
           {/* Card 2: Verify Lawyer - NBA Style Hero Card */}
-          <div id="verify-lawyer-card" className="relative overflow-hidden bg-gradient-to-br from-red-600 via-red-700 to-red-800 rounded-3xl shadow-xl hover:shadow-2xl transition-all duration-300 cursor-pointer group"
+          <div id="verify-lawyer-card" className="relative overflow-hidden bg-gradient-to-br from-red-600 via-red-700 to-red-800 rounded-3xl shadow-xl hover:shadow-2xl transition-all duration-300 cursor-pointer group min-h-[320px] sm:min-h-[340px] lg:min-h-[360px]"
             onClick={handleVerifyLawyer}>
             {/* Decorative Elements */}
             <div className="absolute top-0 right-0 w-64 h-64 bg-red-500/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
             <div className="absolute bottom-0 left-0 w-48 h-48 bg-red-400/15 rounded-full blur-2xl translate-y-1/2 -translate-x-1/2"></div>
             
             <div className="relative z-10 p-4 sm:p-8 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 lg:gap-8">
-              <div className="flex-1 w-full">
+              <div className="flex-1 w-full p-1 sm:p-3">
                 {/* Badge */}
                 <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm rounded-full px-4 py-2 mb-6">
                   <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -241,7 +241,7 @@ export default function Home() {
               </div>
               
               {/* 2D Illustration - always visible, responsive */}
-              <div className="flex items-center justify-center w-full h-48 sm:h-64 lg:w-1/2 lg:h-72 mt-4 lg:mt-0">
+              <div className="flex items-center justify-center w-full h-56 sm:h-72 lg:w-1/2 lg:h-80 mt-6 lg:mt-0">
                 <svg width="280" height="280" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg" className="opacity-95">
                   {/* Background Glow */}
                   <circle cx="100" cy="110" r="80" fill="white" fillOpacity="0.05"/>
@@ -307,14 +307,14 @@ export default function Home() {
           </div>
 
           {/* Card 3: Know Fair Fees - NBA Style Hero Card */}
-          <div id="calculate-fees-card" className="relative overflow-hidden bg-gradient-to-br from-red-600 via-red-700 to-red-800 rounded-3xl shadow-xl hover:shadow-2xl transition-all duration-300 cursor-pointer group"
+          <div id="calculate-fees-card" className="relative overflow-hidden bg-gradient-to-br from-red-600 via-red-700 to-red-800 rounded-3xl shadow-xl hover:shadow-2xl transition-all duration-300 cursor-pointer group min-h-[320px] sm:min-h-[340px] lg:min-h-[360px]"
             onClick={handleCheckFees}>
             {/* Decorative Elements */}
             <div className="absolute top-0 right-0 w-64 h-64 bg-red-500/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
             <div className="absolute bottom-0 left-0 w-48 h-48 bg-red-400/15 rounded-full blur-2xl translate-y-1/2 -translate-x-1/2"></div>
             
             <div className="relative z-10 p-4 sm:p-8 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 lg:gap-8">
-              <div className="flex-1 w-full">
+              <div className="flex-1 w-full p-1 sm:p-3">
                 {/* Badge */}
                 <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm rounded-full px-4 py-2 mb-6">
                   <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -361,7 +361,7 @@ export default function Home() {
               </div>
               
               {/* Wallet Illustration - always visible, responsive */}
-              <div className="flex items-center justify-center w-full h-48 sm:h-64 lg:w-1/2 lg:h-72 mt-4 lg:mt-0">
+              <div className="flex items-center justify-center w-full h-56 sm:h-72 lg:w-1/2 lg:h-80 mt-6 lg:mt-0">
                 <div className="absolute inset-0 bg-white/10 rounded-full blur-3xl scale-75"></div>
                 <img 
                   src="/wallet.svg" 
