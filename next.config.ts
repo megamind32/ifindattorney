@@ -28,11 +28,15 @@ const nextConfig: NextConfig = {
         headers: [
           {
             key: 'Permissions-Policy',
-            value: 'geolocation=(self)'
+            value: 'geolocation=(self), camera=(), microphone=()'
           },
           {
             key: 'Feature-Policy',
             value: 'geolocation "self"'
+          },
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=0, must-revalidate, s-maxage=0'
           }
         ]
       }
