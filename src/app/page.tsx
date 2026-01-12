@@ -124,8 +124,8 @@ export default function Home() {
             <div className="absolute top-0 right-0 w-64 h-64 bg-red-500/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
             <div className="absolute bottom-0 left-0 w-48 h-48 bg-red-400/15 rounded-full blur-2xl translate-y-1/2 -translate-x-1/2"></div>
             
-            <div id="verify-lawyer" className="relative z-10 p-8 sm:p-10 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-8">
-              <div className="flex-1">
+            <div id="verify-lawyer" className="relative z-10 p-4 sm:p-8 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 lg:gap-8">
+              <div className="flex-1 w-full">
                 {/* Badge */}
                 <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm rounded-full px-4 py-2 mb-6">
                   <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -172,14 +172,14 @@ export default function Home() {
               </div>
               
               {/* Search Illustration */}
-              <div className="hidden lg:flex flex-shrink-0 items-center justify-center w-1/2 relative">
+              <div className="flex items-center justify-center w-full h-48 lg:w-1/2 lg:h-72 mt-4 lg:mt-0">
                 {/* Glow effect behind image */}
                 <div className="absolute inset-0 bg-white/10 rounded-full blur-3xl scale-75"></div>
                 {/* Search SVG */}
                 <img 
                   src="/search.svg" 
                   alt="Search for lawyers illustration" 
-                  className="w-72 h-72 object-contain relative z-10 drop-shadow-2xl opacity-95"
+                  className="max-w-full h-auto object-contain relative z-10 drop-shadow-2xl opacity-95"
                   style={{
                     filter: 'drop-shadow(0 25px 25px rgba(0,0,0,0.15))'
                   }}
@@ -195,8 +195,8 @@ export default function Home() {
             <div className="absolute top-0 right-0 w-64 h-64 bg-red-500/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
             <div className="absolute bottom-0 left-0 w-48 h-48 bg-red-400/15 rounded-full blur-2xl translate-y-1/2 -translate-x-1/2"></div>
             
-            <div className="relative z-10 p-8 sm:p-10 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-8">
-              <div className="flex-1">
+            <div className="relative z-10 p-4 sm:p-8 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 lg:gap-8">
+              <div className="flex-1 w-full">
                 {/* Badge */}
                 <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm rounded-full px-4 py-2 mb-6">
                   <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -243,7 +243,7 @@ export default function Home() {
               </div>
               
               {/* 2D Illustration - Roll of Lawyers Document with Checkmark */}
-              <div className="hidden lg:flex flex-shrink-0 items-center justify-center w-1/2">
+              <div className="flex items-center justify-center w-full h-48 lg:w-1/2 lg:h-72 mt-4 lg:mt-0">
                 <svg width="280" height="280" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg" className="opacity-95">
                   {/* Background Glow */}
                   <circle cx="100" cy="110" r="80" fill="white" fillOpacity="0.05"/>
@@ -315,8 +315,8 @@ export default function Home() {
             <div className="absolute top-0 right-0 w-64 h-64 bg-red-500/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
             <div className="absolute bottom-0 left-0 w-48 h-48 bg-red-400/15 rounded-full blur-2xl translate-y-1/2 -translate-x-1/2"></div>
             
-            <div className="relative z-10 p-8 sm:p-10 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-8">
-              <div className="flex-1">
+            <div className="relative z-10 p-4 sm:p-8 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 lg:gap-8">
+              <div className="flex-1 w-full">
                 {/* Badge */}
                 <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm rounded-full px-4 py-2 mb-6">
                   <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
