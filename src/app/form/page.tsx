@@ -95,6 +95,16 @@ function FormPageContent() {
     }
   }, [currentStep, locationAttempted]);
 
+  // Attempt to clear cached Safari permission by opening settings URL
+  const handleOpenSafariSettings = () => {
+    // This won't work directly, but provide clear instructions
+    const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+    if (isSafari) {
+      // Can't directly open Settings from web, show message
+      setError('Please go to: Settings → Safari → Websites → Location, find this site and change to "Ask"');
+    }
+  };
+
   const handleUseLocation = async () => {
     setGettingLocation(true);
     setError('');
@@ -110,7 +120,7 @@ function FormPageContent() {
     // Use high accuracy and proper timeout settings for mobile
     const options = {
       enableHighAccuracy: true,
-      timeout: 30000, // Increased timeout for mobile networks
+      timeout: 60000, // Extended timeout to 60s for stubborn requests
       maximumAge: 0 // Don't use cached location on fresh requests
     };
 
@@ -148,7 +158,7 @@ function FormPageContent() {
         
         switch (error.code) {
           case error.PERMISSION_DENIED:
-            errorMessage = '📍 Location Access Denied\n\nTo enable location:\n\n📱 iPhone/iPad:\n1. Open Settings\n2. Find "Safari" (or your browser)\n3. Tap "Location"\n4. Select "While Using the App"\n5. Return here and try again\n\n🤖 Android:\n1. Open Settings\n2. Find "Apps" or "Permissions"\n3. Select this app\n4. Tap "Permissions"\n5. Enable "Location"\n6. Return here and try again\n\nAlternatively, select your location manually below.';
+            errorMessage = '� LOCATION ACCESS BLOCKED\n\nYour browser is blocking location access. This usually means:\n\n⚠️ Safari Cache Issue (Most Common):\nSettings → Safari → Websites → Location\nFind your website → Change from "Deny" to "Ask"\nThen return here and try again\n\n📱 Alternative Steps:\n1. Settings → Privacy → Location Services → ON\n2. Settings → Safari → Location → "While Using"\n3. Clear Safari data: Settings → Safari → Clear History\n4. Restart Safari\n5. Try again\n\nIf still blocked, please select location manually below.';
             setShowManualLocation(true);
             break;
           case error.POSITION_UNAVAILABLE:
@@ -683,6 +693,16 @@ function FormPageContent() {
               </h2>
               <p className="text-gray-600 text-sm font-[family-name:var(--font-poppins)]">
                 We'll use your location to find the best lawyers near you
+              </p>
+            </div>
+
+            <div className="bg-red-50 border-l-4 border-red-600 p-4 rounded space-y-2 mb-4">
+              <p className="font-semibold text-red-800 text-xs">⚠️ If Permission Was Previously Denied:</p>
+              <p className="text-xs text-red-700 font-[family-name:var(--font-poppins)]">
+                <strong>This is the most common issue!</strong><br/>
+                Settings → Safari → Websites → Location<br/>
+                Find this website → Change to "Ask"<br/>
+                Then return here and try again
               </p>
             </div>
 
