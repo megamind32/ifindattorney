@@ -10,25 +10,6 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  
-  // Set response headers to allow geolocation
-  async headers() {
-    return [
-      {
-        source: '/(.*)',
-        headers: [
-          {
-            key: 'Permissions-Policy',
-            value: 'geolocation=(self), camera=(), microphone=(), payment=()',
-          },
-          {
-            key: 'Access-Control-Allow-Origin',
-            value: '*',
-          },
-        ],
-      },
-    ];
-  },
 
   webpack(config) {
     // Handle SVG imports as React components

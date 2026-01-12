@@ -1,11 +1,18 @@
 {
+  "buildCommand": "npm run build",
+  "installCommand": "npm install",
+  "framework": "nextjs",
   "headers": [
     {
       "source": "/(.*)",
       "headers": [
         {
           "key": "Permissions-Policy",
-          "value": "geolocation=(self), camera=(), microphone=(), payment=()"
+          "value": "geolocation=(self)"
+        },
+        {
+          "key": "Feature-Policy",
+          "value": "geolocation 'self'"
         }
       ]
     }

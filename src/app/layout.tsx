@@ -31,6 +31,10 @@ export const metadata: Metadata = {
   title: "iFind Attorney | Find Lawyers in Lagos",
   description: "AI-powered lawyer recommendation platform for Lagos State. Find the right attorney for your legal needs.",
   viewport: "width=device-width, initial-scale=1, maximum-scale=5",
+  // Allow geolocation API to function
+  other: {
+    "permissions-policy": "geolocation=(self)",
+  },
 };
 
 export default function RootLayout({
