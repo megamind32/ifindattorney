@@ -704,6 +704,13 @@ function FormPageContent() {
               </ol>
             </div>
 
+            <div className="bg-yellow-50 border-l-4 border-yellow-600 p-4 rounded">
+              <p className="font-semibold text-yellow-800 text-xs mb-2">Safari Users:</p>
+              <p className="text-xs text-yellow-700 font-[family-name:var(--font-poppins)]">
+                Make sure you're using <strong>native Safari</strong>, not an in-app browser. If location was previously denied, reset it in Settings → Safari → Location.
+              </p>
+            </div>
+
             <div className="space-y-3">
               <button
                 type="button"
@@ -729,10 +736,15 @@ function FormPageContent() {
             </div>
 
             {permissionStatus === 'denied' && (
-              <div className="bg-red-50 border-l-4 border-red-600 p-4 rounded">
+              <div className="bg-red-50 border-l-4 border-red-600 p-4 rounded space-y-2">
                 <p className="text-xs text-red-700 font-[family-name:var(--font-poppins)]">
-                  <strong>Access Denied Previously?</strong><br/>
-                  Go to Settings → Location and enable for this app
+                  <strong>⚠️ Location Access Previously Denied</strong><br/>
+                </p>
+                <p className="text-xs text-red-600 font-[family-name:var(--font-poppins)]">
+                  <strong>For Safari:</strong><br/>
+                  Settings → Safari → Location → Select "Allow"<br/><br/>
+                  <strong>For Chrome:</strong><br/>
+                  Settings → Apps → Chrome → Permissions → Location
                 </p>
               </div>
             )}
