@@ -171,11 +171,9 @@ export default function Home() {
                 </div>
               </div>
               
-              {/* Search Illustration */}
-              <div className="flex items-center justify-center w-full h-48 lg:w-1/2 lg:h-72 mt-4 lg:mt-0">
-                {/* Glow effect behind image */}
+              {/* Search Illustration - always visible, responsive */}
+              <div className="flex items-center justify-center w-full h-48 sm:h-64 lg:w-1/2 lg:h-72 mt-4 lg:mt-0">
                 <div className="absolute inset-0 bg-white/10 rounded-full blur-3xl scale-75"></div>
-                {/* Search SVG */}
                 <img 
                   src="/search.svg" 
                   alt="Search for lawyers illustration" 
@@ -242,8 +240,8 @@ export default function Home() {
                 </div>
               </div>
               
-              {/* 2D Illustration - Roll of Lawyers Document with Checkmark */}
-              <div className="flex items-center justify-center w-full h-48 lg:w-1/2 lg:h-72 mt-4 lg:mt-0">
+              {/* 2D Illustration - always visible, responsive */}
+              <div className="flex items-center justify-center w-full h-48 sm:h-64 lg:w-1/2 lg:h-72 mt-4 lg:mt-0">
                 <svg width="280" height="280" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg" className="opacity-95">
                   {/* Background Glow */}
                   <circle cx="100" cy="110" r="80" fill="white" fillOpacity="0.05"/>
@@ -362,15 +360,13 @@ export default function Home() {
                 </div>
               </div>
               
-              {/* Wallet Illustration */}
-              <div className="hidden lg:flex flex-shrink-0 items-center justify-center w-1/2 relative">
-                {/* Glow effect behind image */}
+              {/* Wallet Illustration - always visible, responsive */}
+              <div className="flex items-center justify-center w-full h-48 sm:h-64 lg:w-1/2 lg:h-72 mt-4 lg:mt-0">
                 <div className="absolute inset-0 bg-white/10 rounded-full blur-3xl scale-75"></div>
-                {/* Wallet SVG */}
                 <img 
                   src="/wallet.svg" 
                   alt="Legal fees illustration" 
-                  className="w-72 h-72 object-contain relative z-10 drop-shadow-2xl opacity-95"
+                  className="max-w-full h-auto object-contain relative z-10 drop-shadow-2xl opacity-95"
                   style={{
                     filter: 'drop-shadow(0 25px 25px rgba(0,0,0,0.15))'
                   }}
