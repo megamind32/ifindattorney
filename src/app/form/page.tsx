@@ -193,8 +193,9 @@ function FormPageContent() {
         return;
       }
     } else if (currentStep === 2) {
-      if (!locationSuccess || !formData.state || !formData.lga) {
-        setError('Please allow location access to continue. We need your location to find nearby lawyers.');
+      // Make location optional - users can manually select state/LGA
+      if (!formData.state || !formData.lga) {
+        setError('Please select your state and LGA (either via location or manual selection)');
         return;
       }
     } else if (currentStep === 3) {
