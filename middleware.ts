@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
+// Force Vercel cache clear: 2026-01-12T18:30Z
 export function middleware(request: NextRequest) {
   // Clone the request response
   const response = NextResponse.next({
