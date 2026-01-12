@@ -23,8 +23,9 @@ const nextConfig: NextConfig = {
   // Add response headers for all routes to allow geolocation
   async headers() {
     return [
+      // Critical: Form page must have geolocation headers
       {
-        source: '/:path*',
+        source: '/form',
         headers: [
           {
             key: 'Permissions-Policy',
@@ -36,7 +37,21 @@ const nextConfig: NextConfig = {
           },
           {
             key: 'Cache-Control',
-            value: 'public, max-age=0, must-revalidate, s-maxage=0'
+            value: 'no-store, no-cache, must-revalidate, max-age=0'
+          }
+        ]
+      },
+      // Fallback for all other routes
+      {
+        source: '/:path*',
+        headers: [
+          {
+            key: 'Permissions-Policy',
+            value: 'geolocation=(self), camera=(), microphone=()'
+          },
+          {
+            key: 'Feature-Policy',
+            value: 'geolocation "self"'
           }
         ]
       }

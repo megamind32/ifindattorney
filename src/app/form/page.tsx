@@ -5,6 +5,9 @@ import { useRouter } from 'next/navigation';
 import { determineLocationFromCoordinates } from '@/lib/location-mapping';
 import { nigerianLGAData } from '@/lib/nigerian-lgas';
 
+// Force dynamic rendering to prevent static prerendering and ensure headers are applied
+export const dynamic = 'force-dynamic';
+
 interface FormData {
   practiceAreas: string[];
   legalIssue: string;
