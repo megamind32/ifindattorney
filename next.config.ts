@@ -19,6 +19,26 @@ const nextConfig: NextConfig = {
     });
     return config;
   },
+
+  // Add response headers for all routes to allow geolocation
+  async headers() {
+    return [
+      {
+        source: '/:path*',
+        headers: [
+          {
+            key: 'Permissions-Policy',
+            value: 'geolocation=(self)'
+          },
+          {
+            key: 'Feature-Policy',
+            value: 'geolocation "self"'
+          }
+        ]
+      }
+    ];
+  },
+
   turbopack: {},
 };
 
