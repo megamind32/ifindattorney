@@ -1,11 +1,19 @@
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+// Create client only if environment variables are available
+export const supabase = (supabaseUrl && supabaseAnonKey) 
+  ? createClient(supabaseUrl, supabaseAnonKey)
+  : null;
 
 export async function getLawyersByPracticeArea(practiceArea: string, location?: string) {
+  if (!supabase) {
+    console.warn('Supabase not configured');
+    return [];
+  }
+  
   try {
     let query = supabase
       .from('lawyers')
@@ -41,6 +49,11 @@ export async function getRecommendedLawyers(
   location: string,
   limit: number = 5
 ) {
+  if (!supabase) {
+    console.warn('Supabase not configured');
+    return [];
+  }
+  
   try {
     const { data, error } = await supabase
       .from('lawyers')
@@ -70,6 +83,11 @@ export async function saveContactSubmission(submission: {
   budgetSensitivity?: string;
   message: string;
 }) {
+  if (!supabase) {
+    console.warn('Supabase not configured');
+    return null;
+  }
+  
   try {
     const { data, error } = await supabase
       .from('contact_submissions')

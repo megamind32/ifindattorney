@@ -16,6 +16,14 @@ interface NewsletterSignupRequest {
 
 export async function POST(req: NextRequest) {
   try {
+    // Check if Supabase is configured
+    if (!supabase) {
+      return NextResponse.json(
+        { error: 'Database service is not configured' },
+        { status: 503 }
+      );
+    }
+
     const body = await req.json() as NewsletterSignupRequest;
     const { email, name, location } = body;
 
@@ -100,6 +108,14 @@ export async function POST(req: NextRequest) {
  */
 export async function GET(req: NextRequest) {
   try {
+    // Check if Supabase is configured
+    if (!supabase) {
+      return NextResponse.json(
+        { error: 'Database service is not configured' },
+        { status: 503 }
+      );
+    }
+
     const email = req.nextUrl.searchParams.get('email');
 
     if (!email || !email.includes('@')) {

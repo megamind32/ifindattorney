@@ -45,6 +45,14 @@ interface LawyerRecommendation {
 
 export async function POST(req: NextRequest) {
   try {
+    // Check if Supabase is configured
+    if (!supabase) {
+      return NextResponse.json(
+        { error: 'Database service is not configured' },
+        { status: 503 }
+      );
+    }
+
     const body = await req.json() as RecommendationRequest;
     const { classification, userEmail, userName, userMessage } = body;
 
@@ -235,6 +243,14 @@ function filterAndRankLawyers(
  */
 export async function GET(req: NextRequest) {
   try {
+    // Check if Supabase is configured
+    if (!supabase) {
+      return NextResponse.json(
+        { error: 'Database service is not configured' },
+        { status: 503 }
+      );
+    }
+
     const searchParams = req.nextUrl.searchParams;
     const practiceArea = searchParams.get('practiceArea');
     const location = searchParams.get('location');
