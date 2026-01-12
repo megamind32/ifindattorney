@@ -17,6 +17,7 @@ export default function Home() {
   const router = useRouter();
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [fadeIn, setFadeIn] = useState(true);
+  const [scrollRevealVisible, setScrollRevealVisible] = useState(false);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -27,6 +28,31 @@ export default function Home() {
       }, 500);
     }, 15000);
     return () => clearInterval(interval);
+  }, []);
+
+  // Scroll detection for fade-in animation on mobile using Intersection Observer
+  useEffect(() => {
+    const missionSection = document.getElementById('mission-fade-section');
+    if (!missionSection) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            setScrollRevealVisible(true);
+            // Optional: Stop observing after first intersection
+            observer.unobserve(entry.target);
+          }
+        });
+      },
+      { threshold: 0.2 } // Trigger when 20% of element is visible
+    );
+
+    observer.observe(missionSection);
+
+    return () => {
+      if (missionSection) observer.unobserve(missionSection);
+    };
   }, []);
 
   const handleFindLawyer = () => {
@@ -65,7 +91,7 @@ export default function Home() {
       <div id="contact-creator"></div>
 
       {/* Top Quarter - Rotating Image Section with Unique Shape and Overlapping Heading */}
-      <section id="find-law-firm" className="relative w-full h-80 sm:h-96 overflow-hidden bg-gray-900 shadow-lg" style={{ clipPath: 'polygon(0 0, 100% 0, 100% 85%, 0 100%)' }}>
+      <section id="find-law-firm" className="relative w-full h-80 sm:h-96 mt-12 sm:mt-0 overflow-hidden bg-gray-900 shadow-lg" style={{ clipPath: 'polygon(0 0, 100% 0, 100% 85%, 0 100%)' }}>
         <div className="absolute inset-0">
           <img
             src={backgroundImages[currentImageIndex]}
@@ -118,46 +144,35 @@ export default function Home() {
         {/* Feature Cards - NBA Style Design */}
         <div className="space-y-6 content-transition">
           {/* Card 1: Find a Lawyer - NBA Style Hero Card */}
-          <div id="find-law-firm-card" className="relative overflow-hidden bg-gradient-to-br from-red-600 via-red-700 to-red-800 rounded-3xl shadow-xl hover:shadow-2xl transition-all duration-300 cursor-pointer group min-h-[320px] sm:min-h-[340px] lg:min-h-[360px]"
+          <div id="find-law-firm-card" className="relative overflow-hidden bg-gradient-to-br from-red-600 via-red-700 to-red-800 rounded-3xl shadow-xl hover:shadow-2xl transition-all duration-300 cursor-pointer group min-h-[120px] sm:min-h-[160px] lg:min-h-[280px] active:scale-105 active:brightness-110"
             onClick={handleFindLawyer}>
             {/* Decorative Elements */}
-            <div className="absolute top-0 right-0 w-64 h-64 bg-red-500/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
-            <div className="absolute bottom-0 left-0 w-48 h-48 bg-red-400/15 rounded-full blur-2xl translate-y-1/2 -translate-x-1/2"></div>
+            <div className="absolute top-0 right-0 w-32 h-32 sm:w-64 sm:h-64 bg-red-500/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
+            <div className="absolute bottom-0 left-0 w-24 h-24 sm:w-48 sm:h-48 bg-red-400/15 rounded-full blur-2xl translate-y-1/2 -translate-x-1/2"></div>
             
-            <div id="verify-lawyer" className="relative z-10 p-4 sm:p-8 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 lg:gap-8">
-              <div className="flex-1 w-full p-1 sm:p-3">
+            <div id="verify-lawyer" className="relative z-10 p-2 sm:p-8 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-2 lg:gap-8">
+              <div className="flex-1 w-full p-0 sm:p-3 flex flex-col justify-center">
                 {/* Badge */}
-                <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm rounded-full px-4 py-2 mb-6">
-                  <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                <div className="inline-flex items-center gap-1 sm:gap-2 bg-white/15 backdrop-blur-sm rounded-full px-2.5 sm:px-4 py-1.5 sm:py-2 mb-2 sm:mb-3 w-fit border border-white/20">
+                  <svg className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-red-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                   </svg>
-                  <span className="text-white text-xs font-semibold tracking-wide">AI-POWERED SEARCH</span>
+                  <span className="text-white text-xs font-bold tracking-widest font-[family-name:var(--font-khand)] uppercase">AI</span>
                 </div>
                 
                 {/* Heading */}
-                <h3 className="text-3xl sm:text-4xl font-bold font-[family-name:var(--font-playfair)] text-white mb-4 leading-tight">
-                  Find Your<br />
-                  <span className="text-red-200">Perfect Lawyer</span>
+                <h3 className="text-xl sm:text-4xl lg:text-5xl font-black font-[family-name:var(--font-playfair)] text-white mb-1 sm:mb-2 leading-tight italic">
+                  Find Your<br className="hidden sm:block" />
+                  <span className="text-red-300 drop-shadow-lg">Perfect Lawyer</span>
                 </h3>
                 
                 {/* Description */}
-                <p className="text-base sm:text-lg text-red-100 font-[family-name:var(--font-poppins)] mb-8 leading-relaxed max-w-md">
+                <p className="text-xs sm:text-base lg:text-lg text-red-100 font-[family-name:var(--font-poppins)] font-medium mb-3 sm:mb-5 leading-snug sm:leading-relaxed max-w-md line-clamp-2 sm:line-clamp-none">
                   Tell us your legal issue and location. We'll match you with the best law firms across Nigeria in seconds.
                 </p>
                 
-                {/* CTA Button */}
-                <button
-                  onClick={handleFindLawyer}
-                  className="inline-flex items-center gap-3 bg-white text-red-700 font-bold px-6 py-3 rounded-xl hover:bg-red-50 transition-all duration-200 shadow-lg group-hover:shadow-xl group-hover:translate-x-1"
-                >
-                  Get Started
-                  <svg className="w-5 h-5 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
-                  </svg>
-                </button>
-                
                 {/* Trust Indicators */}
-                <div className="flex items-center gap-6 mt-8 pt-6 border-t border-white/10">
+                <div className="flex items-center gap-2 sm:gap-6 mt-2 sm:mt-5 pt-2 sm:pt-5 border-t border-white/20 text-xs sm:text-sm font-[family-name:var(--font-poppins)] font-semibold">
                   <div className="flex items-center gap-2">
                     <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
                     <span className="text-red-100 text-xs font-medium">37 States Covered</span>
@@ -171,8 +186,8 @@ export default function Home() {
                 </div>
               </div>
               
-              {/* Search Illustration - always visible, responsive */}
-              <div className="flex items-center justify-center w-full h-56 sm:h-72 lg:w-1/2 lg:h-80 mt-6 lg:mt-0">
+              {/* Search Illustration - scaled responsively */}
+              <div className="flex items-center justify-center w-24 h-24 sm:w-40 sm:h-40 lg:w-1/2 lg:h-80 mt-1 sm:mt-0 flex-shrink-0">
                 <div className="absolute inset-0 bg-white/10 rounded-full blur-3xl scale-75"></div>
                 <img 
                   src="/search.svg" 
@@ -187,46 +202,35 @@ export default function Home() {
           </div>
 
           {/* Card 2: Verify Lawyer - NBA Style Hero Card */}
-          <div id="verify-lawyer-card" className="relative overflow-hidden bg-gradient-to-br from-red-600 via-red-700 to-red-800 rounded-3xl shadow-xl hover:shadow-2xl transition-all duration-300 cursor-pointer group min-h-[320px] sm:min-h-[340px] lg:min-h-[360px]"
+          <div id="verify-lawyer-card" className="relative overflow-hidden bg-gradient-to-br from-red-600 via-red-700 to-red-800 rounded-3xl shadow-xl hover:shadow-2xl transition-all duration-300 cursor-pointer group min-h-[120px] sm:min-h-[160px] lg:min-h-[280px] active:scale-105 active:brightness-110"
             onClick={handleVerifyLawyer}>
             {/* Decorative Elements */}
-            <div className="absolute top-0 right-0 w-64 h-64 bg-red-500/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
-            <div className="absolute bottom-0 left-0 w-48 h-48 bg-red-400/15 rounded-full blur-2xl translate-y-1/2 -translate-x-1/2"></div>
+            <div className="absolute top-0 right-0 w-32 h-32 sm:w-64 sm:h-64 bg-red-500/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
+            <div className="absolute bottom-0 left-0 w-24 h-24 sm:w-48 sm:h-48 bg-red-400/15 rounded-full blur-2xl translate-y-1/2 -translate-x-1/2"></div>
             
-            <div className="relative z-10 p-4 sm:p-8 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 lg:gap-8">
-              <div className="flex-1 w-full p-1 sm:p-3">
-                {/* Badge */}
-                <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm rounded-full px-4 py-2 mb-6">
-                  <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+            <div className="relative z-10 p-2 sm:p-8 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-2 lg:gap-8">
+              <div className="flex-1 w-full p-0 sm:p-3 flex flex-col justify-center">
+                {/* Badge - Hidden on mobile */}
+                <div className="inline-flex items-center gap-1 sm:gap-2 bg-white/15 backdrop-blur-sm rounded-full px-2.5 sm:px-4 py-1.5 sm:py-2 mb-2 sm:mb-3 w-fit border border-white/20">
+                  <svg className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-green-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                   </svg>
-                  <span className="text-white text-xs font-semibold tracking-wide">NBA VERIFIED</span>
+                  <span className="text-white text-xs font-bold tracking-widest font-[family-name:var(--font-khand)] uppercase">Verified</span>
                 </div>
                 
                 {/* Heading */}
-                <h3 className="text-3xl sm:text-4xl font-bold font-[family-name:var(--font-playfair)] text-white mb-4 leading-tight">
-                  Verify Lawyer<br />
-                  <span className="text-red-200">Credentials</span>
+                <h3 className="text-xl sm:text-4xl lg:text-5xl font-black font-[family-name:var(--font-playfair)] text-white mb-1 sm:mb-2 leading-tight italic">
+                  Verify<br className="hidden sm:block" />
+                  <span className="text-green-300 drop-shadow-lg">Lawyer</span>
                 </h3>
                 
                 {/* Description */}
-                <p className="text-base sm:text-lg text-red-100 font-[family-name:var(--font-poppins)] mb-8 leading-relaxed max-w-md">
+                <p className="text-xs sm:text-base lg:text-lg text-red-100 font-[family-name:var(--font-poppins)] font-medium mb-3 sm:mb-5 leading-snug sm:leading-relaxed max-w-md line-clamp-2 sm:line-clamp-none">
                   Instantly check if any lawyer is registered with the Nigerian Bar Association. Protect yourself from fraudulent practitioners.
                 </p>
                 
-                {/* CTA Button */}
-                <button
-                  onClick={handleVerifyLawyer}
-                  className="inline-flex items-center gap-3 bg-white text-red-700 font-bold px-6 py-3 rounded-xl hover:bg-red-50 transition-all duration-200 shadow-lg group-hover:shadow-xl group-hover:translate-x-1"
-                >
-                  Verify Now
-                  <svg className="w-5 h-5 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
-                  </svg>
-                </button>
-                
                 {/* Trust Indicators */}
-                <div className="flex items-center gap-6 mt-8 pt-6 border-t border-white/10">
+                <div className="flex items-center gap-2 sm:gap-6 mt-2 sm:mt-5 pt-2 sm:pt-5 border-t border-white/20 text-xs sm:text-sm font-[family-name:var(--font-poppins)] font-semibold">
                   <div className="flex items-center gap-2">
                     <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
                     <span className="text-red-100 text-xs font-medium">Live Database</span>
@@ -240,8 +244,8 @@ export default function Home() {
                 </div>
               </div>
               
-              {/* 2D Illustration - always visible, responsive */}
-              <div className="flex items-center justify-center w-full h-56 sm:h-72 lg:w-1/2 lg:h-80 mt-6 lg:mt-0">
+              {/* 2D Illustration - scaled responsively */}
+              <div className="flex items-center justify-center w-24 h-24 sm:w-40 sm:h-40 lg:w-1/2 lg:h-80 mt-1 sm:mt-0 flex-shrink-0">
                 <svg width="280" height="280" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg" className="opacity-95">
                   {/* Background Glow */}
                   <circle cx="100" cy="110" r="80" fill="white" fillOpacity="0.05"/>
@@ -307,46 +311,35 @@ export default function Home() {
           </div>
 
           {/* Card 3: Know Fair Fees - NBA Style Hero Card */}
-          <div id="calculate-fees-card" className="relative overflow-hidden bg-gradient-to-br from-red-600 via-red-700 to-red-800 rounded-3xl shadow-xl hover:shadow-2xl transition-all duration-300 cursor-pointer group min-h-[320px] sm:min-h-[340px] lg:min-h-[360px]"
+          <div id="calculate-fees-card" className="relative overflow-hidden bg-gradient-to-br from-red-600 via-red-700 to-red-800 rounded-3xl shadow-xl hover:shadow-2xl transition-all duration-300 cursor-pointer group min-h-[120px] sm:min-h-[160px] lg:min-h-[280px] active:scale-105 active:brightness-110"
             onClick={handleCheckFees}>
             {/* Decorative Elements */}
-            <div className="absolute top-0 right-0 w-64 h-64 bg-red-500/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
-            <div className="absolute bottom-0 left-0 w-48 h-48 bg-red-400/15 rounded-full blur-2xl translate-y-1/2 -translate-x-1/2"></div>
+            <div className="absolute top-0 right-0 w-32 h-32 sm:w-64 sm:h-64 bg-red-500/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
+            <div className="absolute bottom-0 left-0 w-24 h-24 sm:w-48 sm:h-48 bg-red-400/15 rounded-full blur-2xl translate-y-1/2 -translate-x-1/2"></div>
             
-            <div className="relative z-10 p-4 sm:p-8 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 lg:gap-8">
-              <div className="flex-1 w-full p-1 sm:p-3">
-                {/* Badge */}
-                <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm rounded-full px-4 py-2 mb-6">
-                  <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+            <div className="relative z-10 p-2 sm:p-8 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-2 lg:gap-8">
+              <div className="flex-1 w-full p-0 sm:p-3 flex flex-col justify-center">
+                {/* Badge - Hidden on mobile */}
+                <div className="inline-flex items-center gap-1 sm:gap-2 bg-white/15 backdrop-blur-sm rounded-full px-2.5 sm:px-4 py-1.5 sm:py-2 mb-2 sm:mb-3 w-fit border border-white/20">
+                  <svg className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-yellow-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
                   </svg>
-                  <span className="text-white text-xs font-semibold tracking-wide">OFFICIAL RATES 2023</span>
+                  <span className="text-white text-xs font-bold tracking-widest font-[family-name:var(--font-khand)] uppercase">Pricing</span>
                 </div>
                 
                 {/* Heading */}
-                <h3 className="text-3xl sm:text-4xl font-bold font-[family-name:var(--font-playfair)] text-white mb-4 leading-tight">
-                  Know Fair<br />
-                  <span className="text-red-200">Legal Fees</span>
+                <h3 className="text-xl sm:text-4xl lg:text-5xl font-black font-[family-name:var(--font-playfair)] text-white mb-1 sm:mb-2 leading-tight italic">
+                  Fair<br className="hidden sm:block" />
+                  <span className="text-yellow-300 drop-shadow-lg">Legal Fees</span>
                 </h3>
                 
                 {/* Description */}
-                <p className="text-base sm:text-lg text-red-100 font-[family-name:var(--font-poppins)] mb-8 leading-relaxed max-w-md">
+                <p className="text-xs sm:text-base lg:text-lg text-red-100 font-[family-name:var(--font-poppins)] font-medium mb-3 sm:mb-5 leading-snug sm:leading-relaxed max-w-md line-clamp-2 sm:line-clamp-none">
                   Calculate minimum legal fees based on the Legal Practitioners Remuneration Order. No surprises, complete transparency.
                 </p>
                 
-                {/* CTA Button */}
-                <button
-                  onClick={handleCheckFees}
-                  className="inline-flex items-center gap-3 bg-white text-red-700 font-bold px-6 py-3 rounded-xl hover:bg-red-50 transition-all duration-200 shadow-lg group-hover:shadow-xl group-hover:translate-x-1"
-                >
-                  Explore Rates
-                  <svg className="w-5 h-5 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
-                  </svg>
-                </button>
-                
                 {/* Trust Indicators */}
-                <div className="flex items-center gap-6 mt-8 pt-6 border-t border-white/10">
+                <div className="flex items-center gap-2 sm:gap-6 mt-2 sm:mt-5 pt-2 sm:pt-5 border-t border-white/20 text-xs sm:text-sm font-[family-name:var(--font-poppins)] font-semibold">
                   <div className="flex items-center gap-2">
                     <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
                     <span className="text-red-100 text-xs font-medium">5 Fee Scales</span>
@@ -360,8 +353,8 @@ export default function Home() {
                 </div>
               </div>
               
-              {/* Wallet Illustration - always visible, responsive */}
-              <div className="flex items-center justify-center w-full h-56 sm:h-72 lg:w-1/2 lg:h-80 mt-6 lg:mt-0">
+              {/* Wallet Illustration - scaled responsively */}
+              <div className="flex items-center justify-center w-24 h-24 sm:w-40 sm:h-40 lg:w-1/2 lg:h-80 mt-1 sm:mt-0 flex-shrink-0">
                 <div className="absolute inset-0 bg-white/10 rounded-full blur-3xl scale-75"></div>
                 <img 
                   src="/wallet.svg" 
@@ -377,11 +370,14 @@ export default function Home() {
         </div>
       </section>
 
+      {/* Fade Transition Overlay - Mobile Only */}
+      <div className="sm:hidden relative h-32 bg-gradient-to-b from-white via-white/70 to-transparent pointer-events-none"></div>
+
       {/* ============================================
           MISSION, CHALLENGES & HELP SECTION
           Scroll-reveal animations, hover interactions
           ============================================ */}
-      <section className="relative bg-gradient-to-b from-white via-gray-50/50 to-white py-24 overflow-hidden">
+      <section id="mission-fade-section" className="relative bg-gradient-to-b from-white via-gray-50/50 to-white py-24 overflow-hidden">
         {/* Subtle background decoration */}
         <div className="absolute inset-0 pointer-events-none">
           <div className="absolute top-0 left-1/4 w-96 h-96 bg-red-50 rounded-full blur-3xl opacity-40"></div>

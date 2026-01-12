@@ -15,7 +15,6 @@ interface Lawyer {
   location: string;
   website?: string;
   practiceAreas?: string[];
-  specializations?: string[];  // Specific expertise areas
   phone?: string;
   address?: string;
   email?: string;
@@ -33,10 +32,6 @@ interface Lawyer {
   source?: string;
   logoUrl?: string;
   description?: string;
-  firmSummary?: string;        // About the firm - goals and objectives
-  lawyersInfo?: string;        // Info about lawyers/partners
-  servicesOffered?: string;    // Services they provide
-  researchSource?: string;     // Where the info came from
 }
 
 interface ResultsData {
@@ -234,38 +229,10 @@ function FirmCard({ lawyer, index, isMatch, userPracticeAreas }: FirmCardProps) 
           </div>
         </div>
 
-        {/* Specializations if available */}
-        {lawyer.specializations && lawyer.specializations.length > 0 && (
-          <div className="space-y-2">
-            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Specializations</p>
-            <div className="flex flex-wrap gap-1.5">
-              {lawyer.specializations.slice(0, 5).map((spec, idx) => (
-                <span
-                  key={idx}
-                  className="px-2 py-0.5 rounded-full text-xs font-medium bg-red-50 text-red-600 border border-red-100"
-                >
-                  {spec}
-                </span>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Website Link - Always Visible */}
-        {lawyer.website && (
-          <div className="pt-2 border-t border-gray-100">
-            <a 
-              href={lawyer.website.startsWith('http') ? lawyer.website : `https://${lawyer.website}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 px-4 py-2 bg-red-50 hover:bg-red-100 text-red-600 hover:text-red-700 font-semibold rounded-lg transition-all duration-200"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-              </svg>
-              Visit Website
-            </a>
-          </div>
+        {(lawyer.description || lawyer.matchReason) && (
+          <p className="text-sm text-gray-600 line-clamp-2">
+            {lawyer.description || lawyer.matchReason}
+          </p>
         )}
 
         <div className={`space-y-3 overflow-hidden transition-all duration-300 ${expanded ? 'max-h-96' : 'max-h-0'}`}>
@@ -808,4 +775,3 @@ export default function ResultsPage() {
     </Suspense>
   );
 }
-

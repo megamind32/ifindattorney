@@ -30,6 +30,7 @@ const poppins = Poppins({
 export const metadata: Metadata = {
   title: "iFind Attorney | Find Lawyers in Lagos",
   description: "AI-powered lawyer recommendation platform for Lagos State. Find the right attorney for your legal needs.",
+  viewport: "width=device-width, initial-scale=1, maximum-scale=5",
 };
 
 export default function RootLayout({
@@ -42,7 +43,7 @@ export default function RootLayout({
       <body
         className={`${inter.variable} ${khand.variable} ${playfair.variable} ${poppins.variable} antialiased bg-white text-black font-[family-name:var(--font-inter)]`}
       >
-        <nav className="border-b border-black/10 px-6 py-4 page-fade-in">
+        <nav className="border-b border-black/10 px-4 sm:px-6 py-4 page-fade-in">
           <div className="max-w-6xl mx-auto flex items-center justify-between">
             <a href="/" className="flex items-center gap-2 hover:opacity-80 transition">
               <div className="relative w-10 h-10 bg-red-600 rounded-lg flex items-center justify-center overflow-hidden shadow-md hover:shadow-lg transition">
@@ -56,19 +57,16 @@ export default function RootLayout({
                 />
               </div>
             </a>
-            <div className="flex gap-8">
-              <a href="/projects" className="font-[family-name:var(--font-inter)] hover:text-red-600">
-                Projects
-              </a>
+            <div className="hidden sm:flex gap-8">
             </div>
           </div>
         </nav>
         <div className="page-transition-enter">
           {children}
         </div>
-        <footer className="border-t border-black/10 px-6 py-8 mt-20 page-fade-in">
+        <footer className="border-t border-black/10 px-4 sm:px-6 py-8 mt-20 page-fade-in">
           <div className="max-w-6xl mx-auto">
-            <p className="text-sm text-black/60">
+            <p className="text-xs sm:text-sm text-black/60">
               © 2024 iFind Attorney. <strong>Disclaimer:</strong> This platform does not provide legal advice.
             </p>
           </div>

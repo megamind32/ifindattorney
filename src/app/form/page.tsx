@@ -69,12 +69,13 @@ function FormPageContent() {
     setError('');
   };
 
-  // Auto-detect location when entering Step 2
+  // Don't auto-detect location - let user explicitly request it
   useEffect(() => {
-    if (currentStep === 2 && !locationAttempted && !locationSuccess) {
-      handleUseLocation();
+    // Reset location attempt when moving to step 2 for fresh request
+    if (currentStep === 2 && !locationAttempted) {
+      // Do nothing - wait for user to click button
     }
-  }, [currentStep, locationAttempted, locationSuccess]);
+  }, [currentStep, locationAttempted]);
 
   const handleUseLocation = async () => {
     setGettingLocation(true);
@@ -88,11 +89,11 @@ function FormPageContent() {
       return;
     }
 
-    // Use high accuracy and shorter timeout for faster response
+    // Use high accuracy and proper timeout settings for mobile
     const options = {
       enableHighAccuracy: true,
-      timeout: 10000,
-      maximumAge: 60000 // Cache location for 1 minute
+      timeout: 30000, // Increased timeout for mobile networks
+      maximumAge: 0 // Don't use cached location on fresh requests
     };
 
     navigator.geolocation.getCurrentPosition(
@@ -114,28 +115,37 @@ function FormPageContent() {
             setError('');
           } else {
             setError('Could not determine your location within Nigeria. Please ensure you are in Nigeria and try again.');
+            setShowManualLocation(true);
           }
         } catch (err) {
           setError('Error processing location data. Please try again.');
           console.error('Location error:', err);
+          setShowManualLocation(true);
         }
         setGettingLocation(false);
       },
       (error) => {
-        console.error('Geolocation error:', error);
+        console.error('Geolocation error code:', error.code, 'message:', error.message);
+        let errorMessage = 'Unable to get your location. ';
+        
         switch (error.code) {
           case error.PERMISSION_DENIED:
-            setError('Location permission denied. Please enable location access in your browser settings and refresh the page.');
+            errorMessage = 'Location permission denied. Please:\n1. Check your browser location settings\n2. Allow location access for this website\n3. Try again\n\nAlternatively, you can select your location manually below.';
+            setShowManualLocation(true);
             break;
           case error.POSITION_UNAVAILABLE:
-            setError('Location information is unavailable. Please ensure your device has GPS/location services enabled.');
+            errorMessage = 'Location information is unavailable. Please ensure your device has GPS/location services enabled and try again.';
+            setShowManualLocation(true);
             break;
           case error.TIMEOUT:
-            setError('Location request timed out. Please check your internet connection and try again.');
+            errorMessage = 'Location request timed out. Please check your internet connection and try again.';
             break;
           default:
-            setError('Unable to get your location. Please try again.');
+            errorMessage = 'Unable to get your location. Please try again or select manually.';
+            setShowManualLocation(true);
         }
+        
+        setError(errorMessage);
         setGettingLocation(false);
       },
       options
