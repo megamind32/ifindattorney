@@ -90,24 +90,6 @@ function FormPageContent() {
     setError('');
   };
 
-  // Don't auto-detect location - let user explicitly request it
-  useEffect(() => {
-    // Reset location attempt when moving to step 2 for fresh request
-    if (currentStep === 2 && !locationAttempted) {
-      // Do nothing - wait for user to click button
-    }
-  }, [currentStep, locationAttempted]);
-
-  // Attempt to clear cached Safari permission by opening settings URL
-  const handleOpenSafariSettings = () => {
-    // This won't work directly, but provide clear instructions
-    const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
-    if (isSafari) {
-      // Can't directly open Settings from web, show message
-      setError('Please go to: Settings → Safari → Websites → Location, find this site and change to "Ask"');
-    }
-  };
-
   const handleUseLocation = async () => {
     setGettingLocation(true);
     setError('');
@@ -123,8 +105,8 @@ function FormPageContent() {
     // Use high accuracy and proper timeout settings for mobile
     const options = {
       enableHighAccuracy: true,
-      timeout: 60000, // Extended timeout to 60s for stubborn requests
-      maximumAge: 0 // Don't use cached location on fresh requests
+      timeout: 60000,
+      maximumAge: 0
     };
 
     navigator.geolocation.getCurrentPosition(
@@ -157,131 +139,87 @@ function FormPageContent() {
       },
       (error) => {
         console.error('Geolocation error code:', error.code, 'message:', error.message);
-        let errorMessage = 'Unable to get your location. ';
-        
-        switch (error.code) {
-          case error.PERMISSION_DENIED:
-            errorMessage = '� LOCATION ACCESS BLOCKED\n\nYour browser is blocking location access. This usually means:\n\n⚠️ Safari Cache Issue (Most Common):\nSettings → Safari → Websites → Location\nFind your website → Change from "Deny" to "Ask"\nThen return here and try again\n\n📱 Alternative Steps:\n1. Settings → Privacy → Location Services → ON\n2. Settings → Safari → Location → "While Using"\n3. Clear Safari data: Settings → Safari → Clear History\n4. Restart Safari\n5. Try again\n\nIf still blocked, please select location manually below.';
-            setShowManualLocation(true);
-            break;
-          case error.POSITION_UNAVAILABLE:
-            errorMessage = 'Location information is unavailable. Please ensure your device has GPS/location services enabled and try again.';
-            setShowManualLocation(true);
-            break;
-          case error.TIMEOUT:
-            errorMessage = 'Location request timed out. Please check your internet connection and try again.';
-            break;
-          default:
-            errorMessage = 'Unable to get your location. Please try again or select manually.';
-            setShowManualLocation(true);
-        }
-        
-        setError(errorMessage);
         setGettingLocation(false);
+        setShowManualLocation(true);
+        setLocationAttempted(true);
+
+        if (error.code === 1) {
+          setError('Location permission denied. Please enable location access and try again.');
+        } else if (error.code === 2) {
+          setError('Unable to retrieve your location. Please try again or use manual selection.');
+        } else if (error.code === 3) {
+          setError('Location request timed out. Please try again or use manual selection.');
+        } else {
+          setError('Unable to access your location. Please use manual selection instead.');
+        }
       },
       options
     );
   };
 
-  const nextStep = () => {
-    // Validate current step
-    if (currentStep === 1) {
-      const hasPracticeAreas = formData.practiceAreas.length > 0;
-      const hasLegalIssue = formData.legalIssue.trim();
-      if (!hasPracticeAreas && !hasLegalIssue) {
-        setError('Please either select a practice area or describe your legal issue');
-        return;
-      }
-    } else if (currentStep === 2) {
-      // Make location optional - users can manually select state/LGA
-      if (!formData.state || !formData.lga) {
-        setError('Please select your state and LGA (either via location or manual selection)');
-        return;
-      }
-    } else if (currentStep === 3) {
-      if (!formData.budget) {
-        setError('Please select a budget range');
-        return;
-      }
-    }
-    setError('');
-    setCurrentStep(currentStep + 1);
-  };
+  const progressPercentage = (currentStep / 4) * 100;
 
-  const prevStep = () => {
-    setCurrentStep(currentStep - 1);
-    setError('');
-  };
-
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setError('');
 
     try {
-      // Store form data first (for fallback)
-      const agentRequest = {
-        state: formData.state,
-        lga: formData.lga,
-        practiceAreas: formData.practiceAreas.length > 0 ? formData.practiceAreas : ['General Legal Services'],
-        budget: formData.budget,
-        legalIssue: formData.legalIssue,
-      };
-
-      console.log('DEBUG: Form submission - Request:', agentRequest);
-      
-      // Store request in sessionStorage first (before API call)
-      if (typeof window !== 'undefined') {
-        sessionStorage.setItem('userFormData', JSON.stringify(agentRequest));
-        console.log('DEBUG: Form data stored in sessionStorage:', sessionStorage.getItem('userFormData'));
-      }
-
-      // Call the AI agent to search for law firms on Google Maps
-      console.log('DEBUG: Calling AI agent endpoint...');
-      
-      const agentResponse = await fetch('/api/search-lawyers-agent', {
+      const response = await fetch('/api/get-lawyers', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(agentRequest),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData),
       });
 
-      if (agentResponse.ok) {
-        const agentData = await agentResponse.json();
-        console.log('DEBUG: Agent response received:', agentData);
-        
-        // Update sessionStorage with agent results
-        const dataWithResults = {
-          ...agentRequest,
-          agentResults: agentData,
-        };
-        
-        if (typeof window !== 'undefined') {
-          sessionStorage.setItem('userFormData', JSON.stringify(dataWithResults));
-          console.log('DEBUG: Form data updated with agent results');
-        }
-      } else {
-        console.warn(`DEBUG: Agent request failed with status ${agentResponse.status}, will use fallback on results page`);
+      if (!response.ok) {
+        throw new Error('Failed to get recommendations');
       }
 
-      // Small delay to ensure sessionStorage is written before navigation
-      await new Promise(resolve => setTimeout(resolve, 100));
-      
-      // Navigate to results page (with or without agent results)
-      console.log('DEBUG: Navigating to /results');
-      window.location.href = '/results'; // Use window.location instead of router.push for more reliable navigation
+      sessionStorage.setItem('userFormData', JSON.stringify(formData));
+      router.push('/results');
     } catch (err) {
-      console.error('DEBUG: Error during submit:', err);
-      setError(err instanceof Error ? err.message : 'An error occurred. Please try again.');
+      setError('Failed to submit form. Please try again.');
+      console.error(err);
       setLoading(false);
     }
   };
 
-  const progressPercentage = (currentStep / 4) * 100;
-
   return (
-    <main className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-red-50/30 page-transition-enter">
+    <form onSubmit={handleSubmit} className="min-h-screen bg-white">
+      {/* Location Modal */}
+      {showLocationModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl p-8 max-w-md w-full shadow-2xl">
+            <h2 className="text-2xl font-bold text-gray-900 mb-4 font-[family-name:var(--font-playfair)]">
+              Enable Location Access
+            </h2>
+            <p className="text-gray-600 mb-6 font-[family-name:var(--font-poppins)]">
+              To find lawyers near you, we need permission to access your location.
+            </p>
+
+            <button
+              type="button"
+              onClick={() => {
+                handleUseLocation();
+                setShowLocationModal(false);
+              }}
+              className="w-full px-6 py-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition-all duration-300 font-[family-name:var(--font-poppins)]"
+            >
+              ✓ Allow Location Access
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setShowLocationModal(false);
+                setShowManualLocation(true);
+              }}
+              className="w-full px-6 py-3 bg-gray-200 text-gray-700 font-semibold rounded-xl hover:bg-gray-300 transition-all duration-300 font-[family-name:var(--font-poppins)]"
+            >
+              📝 Enter Location Manually
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Fluid Header */}
       <section className="relative overflow-hidden px-4 sm:px-6 py-12 sm:py-16">
         <div className="max-w-4xl mx-auto">
@@ -315,467 +253,359 @@ function FormPageContent() {
         </div>
       </section>
 
-      {/* Form Section */}
-      <section className="px-4 sm:px-6 py-8 sm:py-12">
-        <div className="max-w-3xl mx-auto">
-          <form onSubmit={handleSubmit} className="space-y-8">
-            {/* Error Message */}
-            {error && (
-              <div className="animate-shake bg-red-50 border-2 border-red-300 rounded-2xl p-6">
-                <p className="text-red-700 font-[family-name:var(--font-poppins)] font-medium">{error}</p>
+      {/* Form Container */}
+      <section className="relative overflow-hidden px-4 sm:px-6 py-12">
+        <div className="max-w-4xl mx-auto">
+          {/* Error Message */}
+          {error && (
+            <div className="mb-6 p-4 bg-red-50 border-2 border-red-300 rounded-xl">
+              <p className="text-red-700 font-semibold font-[family-name:var(--font-poppins)]">{error}</p>
+            </div>
+          )}
+
+          {/* Step 1: Practice Areas */}
+          {currentStep === 1 && (
+            <div className="space-y-6 animate-fadeIn">
+              <div>
+                <h2 className="text-2xl font-bold font-[family-name:var(--font-playfair)] text-gray-900 mb-2">Practice Areas</h2>
+                <p className="text-gray-600 font-[family-name:var(--font-poppins)]">Select one or multiple areas that match your need:</p>
               </div>
-            )}
 
-            {/* Step 1: Practice Areas */}
-            {currentStep === 1 && (
-              <div className="space-y-6 animate-fadeIn">
-                <div>
-                  <h2 className="text-2xl font-bold font-[family-name:var(--font-playfair)] text-gray-900 mb-2">Practice Areas</h2>
-                  <p className="text-gray-600 font-[family-name:var(--font-poppins)]">Select one or multiple areas that match your need:</p>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {practiceAreas.map((area) => (
-                    <label
-                      key={area}
-                      className="group cursor-pointer relative"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={formData.practiceAreas.includes(area)}
-                        onChange={() => handlePracticeAreaChange(area)}
-                        className="sr-only"
-                      />
-                      <div className="relative p-4 border-2 border-gray-200 rounded-2xl transition-all duration-300 group-hover:border-red-400 group-hover:bg-red-50 group-hover:shadow-lg"
-                           style={{
-                             borderColor: formData.practiceAreas.includes(area) ? '#dc2626' : 'currentColor',
-                             backgroundColor: formData.practiceAreas.includes(area) ? '#fef2f2' : 'transparent'
-                           }}>
-                        <div className="flex items-center gap-3">
-                          <div className="w-6 h-6 rounded-lg border-2 border-gray-300 flex items-center justify-center transition-all duration-200 group-hover:border-red-400"
-                               style={{
-                                 borderColor: formData.practiceAreas.includes(area) ? '#dc2626' : 'currentColor',
-                                 backgroundColor: formData.practiceAreas.includes(area) ? '#dc2626' : 'transparent'
-                               }}>
-                            {formData.practiceAreas.includes(area) && (
-                              <span className="text-white text-sm">✓</span>
-                            )}
-                          </div>
-                          <span className="font-semibold text-gray-900 font-[family-name:var(--font-poppins)]">{area}</span>
-                        </div>
-                      </div>
-                    </label>
-                  ))}
-                </div>
-
-                {/* Legal Issue Textarea */}
-                <div className="mt-8 pt-8 border-t border-gray-200">
-                  <h3 className="text-lg font-bold font-[family-name:var(--font-playfair)] text-gray-900 mb-3">Or describe your issue</h3>
-                  <textarea
-                    name="legalIssue"
-                    value={formData.legalIssue}
-                    onChange={handleInputChange}
-                    placeholder="Tell us about your legal situation in detail..."
-                    rows={5}
-                    disabled={formData.practiceAreas.length > 0}
-                    className={`w-full px-6 py-4 border-2 rounded-2xl font-[family-name:var(--font-poppins)] font-semibold transition-all duration-300 focus:outline-none resize-none ${
-                      formData.practiceAreas.length > 0
-                        ? 'border-gray-200 bg-gray-100 text-gray-500 cursor-not-allowed'
-                        : 'border-red-300 focus:border-red-500 focus:ring-2 focus:ring-red-100 text-gray-900'
-                    }`}
-                  />
-                </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {practiceAreas.map((area) => (
+                  <label
+                    key={area}
+                    className="group cursor-pointer relative"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={formData.practiceAreas.includes(area)}
+                      onChange={() => handlePracticeAreaChange(area)}
+                      className="sr-only"
+                    />
+                    <div className={`p-4 rounded-xl border-2 transition-all duration-300 ${
+                      formData.practiceAreas.includes(area)
+                        ? 'border-red-500 bg-red-50'
+                        : 'border-gray-300 bg-white group-hover:border-red-300'
+                    }`}>
+                      <p className="font-semibold text-gray-900 font-[family-name:var(--font-poppins)]">
+                        {formData.practiceAreas.includes(area) ? '✓ ' : ''}{area}
+                      </p>
+                    </div>
+                  </label>
+                ))}
               </div>
-            )}
 
-            {/* Step 2: Location */}
-            {currentStep === 2 && (
-              <div className="space-y-6 animate-fadeIn">
-                <div>
-                  <h2 className="text-2xl font-bold font-[family-name:var(--font-playfair)] text-gray-900 mb-2">
-                    {showManualLocation ? 'Select Your Location' : 'Detecting Your Location'}
-                  </h2>
-                  <p className="text-gray-600 font-[family-name:var(--font-poppins)]">
-                    {showManualLocation 
-                      ? 'Choose your state and local government area manually.'
-                      : 'We use your current location to find lawyers near you.'}
+              {/* Practice Area Description */}
+              {formData.practiceAreas.length > 0 && (
+                <div className="p-4 bg-blue-50 border border-blue-200 rounded-xl">
+                  <p className="text-blue-700 font-semibold font-[family-name:var(--font-poppins)]">
+                    {formData.practiceAreas.length} area{formData.practiceAreas.length !== 1 ? 's' : ''} selected
                   </p>
                 </div>
+              )}
 
-                {/* Manual Location Selection */}
-                {showManualLocation ? (
-                  <div className="space-y-4">
-                    {/* State Selection */}
+              {/* Legal Issue Textarea */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2 font-[family-name:var(--font-poppins)]">
+                  Describe Your Legal Issue
+                </label>
+                <textarea
+                  name="legalIssue"
+                  value={formData.legalIssue}
+                  onChange={handleInputChange}
+                  placeholder="e.g., My employer has not paid my salary for 3 months..."
+                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl font-[family-name:var(--font-poppins)] focus:border-red-500 focus:outline-none transition-all duration-300"
+                  rows={5}
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Step 2: Location */}
+          {currentStep === 2 && (
+            <div className="space-y-6 animate-fadeIn">
+              <div>
+                <h2 className="text-2xl font-bold font-[family-name:var(--font-playfair)] text-gray-900 mb-2">
+                  {showManualLocation ? 'Select Your Location' : 'Detecting Your Location'}
+                </h2>
+                <p className="text-gray-600 font-[family-name:var(--font-poppins)]">
+                  {showManualLocation 
+                    ? 'Choose your state and local government area manually.'
+                    : 'We use your current location to find lawyers near you.'}
+                </p>
+              </div>
+
+              {/* Manual Location Selection */}
+              {showManualLocation && !gettingLocation ? (
+                <div className="space-y-4">
+                  {/* State Selection */}
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2 font-[family-name:var(--font-poppins)]">
+                      State
+                    </label>
+                    <select
+                      name="state"
+                      value={formData.state}
+                      onChange={(e) => {
+                        setFormData(prev => ({
+                          ...prev,
+                          state: e.target.value,
+                          lga: ''
+                        }));
+                        setError('');
+                      }}
+                      className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl font-[family-name:var(--font-poppins)] focus:border-red-500 focus:outline-none transition-all duration-300"
+                    >
+                      <option value="">Select a state...</option>
+                      {nigerianStates.map((state) => (
+                        <option key={state} value={state}>{state}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* LGA Selection */}
+                  {formData.state && (
                     <div>
                       <label className="block text-sm font-semibold text-gray-700 mb-2 font-[family-name:var(--font-poppins)]">
-                        State
+                        Local Government Area (LGA)
                       </label>
                       <select
-                        name="state"
-                        value={formData.state}
+                        name="lga"
+                        value={formData.lga}
                         onChange={(e) => {
                           setFormData(prev => ({
                             ...prev,
-                            state: e.target.value,
-                            lga: '' // Reset LGA when state changes
+                            lga: e.target.value
                           }));
+                          if (e.target.value) {
+                            setLocationSuccess(true);
+                          }
                           setError('');
                         }}
                         className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl font-[family-name:var(--font-poppins)] focus:border-red-500 focus:outline-none transition-all duration-300"
                       >
-                        <option value="">Select a state...</option>
-                        {nigerianStates.map((state) => (
-                          <option key={state} value={state}>{state}</option>
+                        <option value="">Select an LGA...</option>
+                        {nigerianLGAData[formData.state]?.lgas.map((lga) => (
+                          <option key={lga} value={lga}>{lga}</option>
                         ))}
                       </select>
                     </div>
+                  )}
 
-                    {/* LGA Selection */}
-                    {formData.state && (
-                      <div>
-                        <label className="block text-sm font-semibold text-gray-700 mb-2 font-[family-name:var(--font-poppins)]">
-                          Local Government Area (LGA)
-                        </label>
-                        <select
-                          name="lga"
-                          value={formData.lga}
-                          onChange={(e) => {
-                            setFormData(prev => ({
-                              ...prev,
-                              lga: e.target.value
-                            }));
-                            if (e.target.value) {
-                              setLocationSuccess(true);
-                            }
-                            setError('');
-                          }}
-                          className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl font-[family-name:var(--font-poppins)] focus:border-red-500 focus:outline-none transition-all duration-300"
-                        >
-                          <option value="">Select an LGA...</option>
-                          {nigerianLGAData[formData.state]?.lgas.map((lga) => (
-                            <option key={lga} value={lga}>{lga}</option>
-                          ))}
-                        </select>
-                      </div>
-                    )}
-
-                    {/* Success indicator */}
-                    {locationSuccess && formData.state && formData.lga && (
-                      <div className="p-4 bg-green-50 border border-green-200 rounded-xl text-center">
-                        <p className="text-green-700 font-semibold font-[family-name:var(--font-poppins)]">
-                          ✓ Location set: {formData.lga}, {formData.state}
-                        </p>
-                      </div>
-                    )}
-
-                    {/* Switch back to auto-detect */}
-                    <div className="text-center pt-4">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setShowManualLocation(false);
-                          setLocationAttempted(false);
-                          setError('');
-                        }}
-                        className="text-blue-600 hover:text-blue-800 font-semibold text-sm font-[family-name:var(--font-poppins)]"
-                      >
-                        ← Try automatic location detection
-                      </button>
+                  {/* Success indicator */}
+                  {locationSuccess && formData.state && formData.lga && (
+                    <div className="p-4 bg-green-50 border border-green-200 rounded-xl text-center">
+                      <p className="text-green-700 font-semibold font-[family-name:var(--font-poppins)]">
+                        ✓ Location set: {formData.lga}, {formData.state}
+                      </p>
                     </div>
+                  )}
+
+                  {/* Switch back to auto-detect */}
+                  <div className="text-center pt-4">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowManualLocation(false);
+                        setLocationAttempted(false);
+                        setError('');
+                      }}
+                      className="text-blue-600 hover:text-blue-800 font-semibold text-sm font-[family-name:var(--font-poppins)]"
+                    >
+                      ← Try automatic location detection
+                    </button>
                   </div>
-                ) : (
-                  /* Auto Location Detection */
-                  <>
-                    <div className={`p-8 rounded-3xl border-2 transition-all duration-500 ${
-                      locationSuccess 
-                        ? 'bg-green-50 border-green-300' 
-                        : gettingLocation 
-                        ? 'bg-blue-50 border-blue-300' 
-                        : 'bg-gray-50 border-gray-300'
-                    }`}>
-                      {gettingLocation ? (
-                        <div className="text-center">
-                          <div className="w-16 h-16 mx-auto mb-4 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-                          <h3 className="text-xl font-bold text-blue-700 font-[family-name:var(--font-playfair)] mb-2">
-                            Detecting your location...
-                          </h3>
-                          <p className="text-gray-600 font-[family-name:var(--font-poppins)]">
-                            Please allow location access when prompted
-                          </p>
-                        </div>
-                      ) : locationSuccess ? (
-                        <div className="text-center">
-                          <div className="w-16 h-16 mx-auto mb-4 bg-green-500 rounded-full flex items-center justify-center">
-                            <span className="text-3xl text-white">✓</span>
-                          </div>
-                          <h3 className="text-xl font-bold text-green-700 font-[family-name:var(--font-playfair)] mb-2">
-                            Location Detected!
-                          </h3>
-                          <div className="bg-white rounded-2xl p-4 mt-4 inline-block">
-                            <p className="text-lg font-semibold text-gray-900 font-[family-name:var(--font-poppins)]">
-                              📍 {formData.lga}, {formData.state}
-                            </p>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="text-center">
-                          <div className="w-16 h-16 mx-auto mb-4 bg-gray-300 rounded-full flex items-center justify-center">
-                            <span className="text-3xl">📍</span>
-                          </div>
-                          <h3 className="text-xl font-bold text-gray-700 font-[family-name:var(--font-playfair)] mb-2">
-                            Location Required
-                          </h3>
-                          <p className="text-gray-600 font-[family-name:var(--font-poppins)] mb-4">
-                            Click below to detect your location
-                          </p>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setShowLocationModal(true);
-                            }}
-                            className="px-8 py-4 bg-blue-600 text-white font-bold rounded-2xl hover:bg-blue-700 transition-all duration-300 font-[family-name:var(--font-poppins)]"
-                          >
-                            📍 Detect My Location
-                          </button>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Retry and Manual Selection buttons (only show if failed) */}
-                    {!gettingLocation && !locationSuccess && locationAttempted && (
-                      <div className="text-center space-y-4">
+                </div>
+              ) : !showManualLocation ? (
+                /* Auto Location Detection */
+                <>
+                  <div className={`p-8 rounded-3xl border-2 transition-all duration-500 ${
+                    locationSuccess 
+                      ? 'bg-green-50 border-green-300' 
+                      : gettingLocation 
+                      ? 'bg-blue-50 border-blue-300' 
+                      : 'bg-gray-50 border-gray-300'
+                  }`}>
+                    {gettingLocation ? (
+                      <div className="text-center">
+                        <div className="w-16 h-16 mx-auto mb-4 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                        <h3 className="text-xl font-bold text-blue-700 font-[family-name:var(--font-playfair)] mb-2">
+                          Detecting your location...
+                        </h3>
+                        <p className="text-blue-700 font-[family-name:var(--font-poppins)]">Please allow location access in your browser.</p>
+                      </div>
+                    ) : locationSuccess && formData.state && formData.lga ? (
+                      <div className="text-center">
+                        <h3 className="text-xl font-bold text-green-700 font-[family-name:var(--font-playfair)] mb-2">
+                          ✓ Location Detected
+                        </h3>
+                        <p className="text-green-600 font-[family-name:var(--font-poppins)]">{formData.lga}, {formData.state}</p>
+                      </div>
+                    ) : (
+                      <div className="text-center">
                         <button
                           type="button"
-                          onClick={() => {
-                            setLocationAttempted(false);
-                            setError('');
-                            setShowLocationModal(true);
-                          }}
-                          className="px-6 py-3 bg-gray-200 text-gray-700 font-semibold rounded-xl hover:bg-gray-300 transition-all duration-300 font-[family-name:var(--font-poppins)] mr-4"
+                          onClick={() => setShowLocationModal(true)}
+                          className="inline-block px-8 py-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition-all duration-300 font-[family-name:var(--font-poppins)]"
                         >
-                          🔄 Try Again
+                          📍 Detect My Location
                         </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setShowManualLocation(true);
-                            setError('');
-                          }}
-                          className="px-6 py-3 bg-red-600 text-white font-semibold rounded-xl hover:bg-red-700 transition-all duration-300 font-[family-name:var(--font-poppins)]"
-                        >
-                          📝 Enter Location Manually
-                        </button>
+                        <p className="text-gray-600 font-[family-name:var(--font-poppins)] mt-4">We never store your location data. It is only used to match you with nearby lawyers.</p>
                       </div>
                     )}
-                  </>
-                )}
+                  </div>
+                </>
+              ) : null}
+            </div>
+          )}
 
-                {/* Location Privacy Notice */}
-                <div className="p-4 bg-blue-50 border-l-4 border-blue-500 rounded-r-xl">
-                  <p className="text-sm text-blue-800 font-[family-name:var(--font-poppins)]">
-                    <strong>🔒 Privacy:</strong> Your location is only used to find lawyers near you and is not stored permanently.
+          {/* Step 3: Budget */}
+          {currentStep === 3 && (
+            <div className="space-y-6 animate-fadeIn">
+              <div>
+                <h2 className="text-2xl font-bold font-[family-name:var(--font-playfair)] text-gray-900 mb-2">Budget Range</h2>
+                <p className="text-gray-600 font-[family-name:var(--font-poppins)]">What's your budget for legal consultation?</p>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {[
+                  { value: 'under-50k', label: 'Under ₦50,000' },
+                  { value: '50k-100k', label: '₦50,000 - ₦100,000' },
+                  { value: '100k-250k', label: '₦100,000 - ₦250,000' },
+                  { value: '250k-plus', label: '₦250,000+' },
+                ].map((option) => (
+                  <label
+                    key={option.value}
+                    className="group cursor-pointer relative"
+                  >
+                    <input
+                      type="radio"
+                      name="budget"
+                      value={option.value}
+                      checked={formData.budget === option.value}
+                      onChange={handleInputChange}
+                      className="sr-only"
+                    />
+                    <div className={`p-4 rounded-xl border-2 transition-all duration-300 ${
+                      formData.budget === option.value
+                        ? 'border-red-500 bg-red-50'
+                        : 'border-gray-300 bg-white group-hover:border-red-300'
+                    }`}>
+                      <p className="font-semibold text-gray-900 font-[family-name:var(--font-poppins)]">
+                        {formData.budget === option.value ? '✓ ' : ''}{option.label}
+                      </p>
+                    </div>
+                  </label>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Step 4: Review */}
+          {currentStep === 4 && (
+            <div className="space-y-6 animate-fadeIn">
+              <div>
+                <h2 className="text-2xl font-bold font-[family-name:var(--font-playfair)] text-gray-900 mb-2">Review Your Details</h2>
+                <p className="text-gray-600 font-[family-name:var(--font-poppins)]">Please confirm your information before proceeding:</p>
+              </div>
+
+              <div className="space-y-4">
+                {/* Review: Practice Areas */}
+                <div className="p-4 border-2 border-gray-300 rounded-xl">
+                  <p className="text-sm text-gray-600 font-semibold mb-2 font-[family-name:var(--font-poppins)]">Legal Practice Areas</p>
+                  <p className="text-gray-900 font-[family-name:var(--font-poppins)]">
+                    {formData.practiceAreas.length > 0 ? formData.practiceAreas.join(', ') : 'Not selected'}
+                  </p>
+                </div>
+
+                {/* Review: Legal Issue */}
+                <div className="p-4 border-2 border-gray-300 rounded-xl">
+                  <p className="text-sm text-gray-600 font-semibold mb-2 font-[family-name:var(--font-poppins)]">Your Legal Issue</p>
+                  <p className="text-gray-900 font-[family-name:var(--font-poppins)]">{formData.legalIssue || 'Not provided'}</p>
+                </div>
+
+                {/* Review: Location */}
+                <div className="p-4 border-2 border-gray-300 rounded-xl">
+                  <p className="text-sm text-gray-600 font-semibold mb-2 font-[family-name:var(--font-poppins)]">Location</p>
+                  <p className="text-gray-900 font-[family-name:var(--font-poppins)]">
+                    {formData.lga && formData.state ? `${formData.lga}, ${formData.state}` : 'Not set'}
+                  </p>
+                </div>
+
+                {/* Review: Budget */}
+                <div className="p-4 border-2 border-gray-300 rounded-xl">
+                  <p className="text-sm text-gray-600 font-semibold mb-2 font-[family-name:var(--font-poppins)]">Budget</p>
+                  <p className="text-gray-900 font-[family-name:var(--font-poppins)]">
+                    {formData.budget === 'under-50k' && 'Under ₦50,000'}
+                    {formData.budget === '50k-100k' && '₦50,000 - ₦100,000'}
+                    {formData.budget === '100k-250k' && '₦100,000 - ₦250,000'}
+                    {formData.budget === '250k-plus' && '₦250,000+'}
+                    {!formData.budget && 'Not selected'}
                   </p>
                 </div>
               </div>
-            )}
 
-            {/* Step 3: Budget */}
-            {currentStep === 3 && (
-              <div className="space-y-6 animate-fadeIn">
-                <div>
-                  <h2 className="text-2xl font-bold font-[family-name:var(--font-playfair)] text-gray-900 mb-2">Budget</h2>
-                  <p className="text-gray-600 font-[family-name:var(--font-poppins)]">What's your budget range for legal services? (in NGN)</p>
-                </div>
-
-                <div className="space-y-3">
-                  {[
-                    { value: 'Below 50,000', label: 'Below ₦50,000' },
-                    { value: '50,000 - 100,000', label: '₦50,000 - ₦100,000' },
-                    { value: '100,000 - 250,000', label: '₦100,000 - ₦250,000' },
-                    { value: '250,000 - 500,000', label: '₦250,000 - ₦500,000' },
-                    { value: '500,000 - 1,000,000', label: '₦500,000 - ₦1,000,000' },
-                    { value: 'Above 1,000,000', label: 'Above ₦1,000,000' },
-                  ].map((option) => (
-                    <label key={option.value} className="group cursor-pointer">
-                      <input
-                        type="radio"
-                        name="budget"
-                        value={option.value}
-                        checked={formData.budget === option.value}
-                        onChange={(e) => setFormData({...formData, budget: e.target.value})}
-                        className="sr-only"
-                      />
-                      <div className="p-4 border-2 border-gray-200 rounded-2xl transition-all duration-300 group-hover:border-red-400 group-hover:bg-red-50 group-hover:shadow-lg"
-                           style={{
-                             borderColor: formData.budget === option.value ? '#dc2626' : 'currentColor',
-                             backgroundColor: formData.budget === option.value ? '#fef2f2' : 'transparent'
-                           }}>
-                            <span className="font-semibold text-gray-900 font-[family-name:var(--font-poppins)]">{option.label}</span>
-                          </div>
-                    </label>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Step 4: Review */}
-            {currentStep === 4 && (
-              <div className="space-y-6 animate-fadeIn">
-                <div className="bg-gradient-to-br from-red-50 to-pink-50 rounded-3xl p-8 border-2 border-red-200">
-                  <h2 className="text-2xl font-bold font-[family-name:var(--font-playfair)] text-gray-900 mb-6">Review Your Details</h2>
-                  
-                  <div className="space-y-4">
-                    <div className="bg-white rounded-2xl p-4">
-                      <p className="text-sm text-gray-600 font-[family-name:var(--font-poppins)]">Legal Need</p>
-                      <p className="font-semibold text-gray-900 font-[family-name:var(--font-poppins)]">
-                        {formData.practiceAreas.length > 0 ? formData.practiceAreas.join(', ') : formData.legalIssue || 'Not specified'}
-                      </p>
-                    </div>
-
-                    <div className="bg-white rounded-2xl p-4">
-                      <p className="text-sm text-gray-600 font-[family-name:var(--font-poppins)]">Location</p>
-                      <p className="font-semibold text-gray-900 font-[family-name:var(--font-poppins)]">{formData.state}, {formData.lga}</p>
-                    </div>
-
-                    <div className="bg-white rounded-2xl p-4">
-                      <p className="text-sm text-gray-600 font-[family-name:var(--font-poppins)]">Budget</p>
-                      <p className="font-semibold text-gray-900 font-[family-name:var(--font-poppins)]">{formData.budget}</p>
-                    </div>
-                  </div>
-                </div>
-
-                <p className="text-xs sm:text-sm text-gray-600 font-[family-name:var(--font-poppins)] text-center">
-                  <strong className="text-red-600">Privacy:</strong> Your information will only be used to match you with appropriate lawyers.
+              {/* Disclaimer */}
+              <div className="p-4 bg-yellow-50 border-2 border-yellow-300 rounded-xl">
+                <p className="text-sm text-yellow-800 font-semibold font-[family-name:var(--font-poppins)]">
+                  ⚖️ By submitting, you agree that we will match you with lawyers. Your data will be used only for lawyer matching and will not be shared without your consent.
                 </p>
               </div>
-            )}
-
-            {/* Navigation Buttons */}
-            <div className="flex gap-4 pt-8">
-              {currentStep > 1 && (
-                <button
-                  type="button"
-                  onClick={prevStep}
-                  className="px-8 py-4 border-2 border-gray-300 text-gray-700 font-bold rounded-2xl hover:border-red-600 hover:text-red-600 transition-all duration-300 font-[family-name:var(--font-poppins)]"
-                >
-                  ← Back
-                </button>
-              )}
-              {currentStep < 4 && (
-                <button
-                  type="button"
-                  onClick={nextStep}
-                  className="flex-1 px-8 py-4 bg-gradient-to-r from-red-600 to-red-700 text-white font-bold rounded-2xl hover:shadow-lg transform hover:scale-105 transition-all duration-300 font-[family-name:var(--font-poppins)]"
-                >
-                  Next →
-                </button>
-              )}
-              {currentStep === 4 && (
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className={`flex-1 px-8 py-4 bg-gradient-to-r from-red-600 to-red-700 text-white font-bold rounded-2xl transition-all duration-300 font-[family-name:var(--font-poppins)] ${
-                    loading ? 'opacity-50 cursor-not-allowed' : 'hover:shadow-lg transform hover:scale-105'
-                  }`}
-                >
-                  {loading ? 'Finding Lawyers...' : 'Find My Lawyers →'}
-                </button>
-              )}
             </div>
-          </form>
-        </div>
-      </section>
+          )}
 
-      {/* Location Permission Modal */}
-      {showLocationModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full p-8 space-y-6 animate-pulse">
-            <div className="text-center">
-              <div className="text-5xl mb-4">📍</div>
-              <h2 className="text-2xl font-bold text-gray-900 mb-2 font-[family-name:var(--font-playfair)]">
-                Share Your Location
-              </h2>
-              <p className="text-gray-600 text-sm font-[family-name:var(--font-poppins)]">
-                We'll use your location to find the best lawyers near you
-              </p>
-            </div>
+          {/* Navigation Buttons */}
+          <div className="flex justify-between mt-12">
+            <button
+              type="button"
+              onClick={() => setCurrentStep(Math.max(1, currentStep - 1))}
+              disabled={currentStep === 1}
+              className={`px-8 py-3 font-bold rounded-xl transition-all duration-300 font-[family-name:var(--font-poppins)] ${
+                currentStep === 1
+                  ? 'text-gray-400 cursor-not-allowed'
+                  : 'text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              ← Previous
+            </button>
 
-            <div className="bg-red-50 border-l-4 border-red-600 p-4 rounded space-y-2 mb-4">
-              <p className="font-semibold text-red-800 text-xs">⚠️ If Permission Was Previously Denied:</p>
-              <p className="text-xs text-red-700 font-[family-name:var(--font-poppins)]">
-                <strong>This is the most common issue!</strong><br/>
-                Settings → Safari → Websites → Location<br/>
-                Find this website → Change to "Ask"<br/>
-                Then return here and try again
-              </p>
-            </div>
-
-            <div className="bg-blue-50 border-l-4 border-blue-600 p-4 rounded space-y-3">
-              <p className="font-semibold text-gray-800 text-sm">What happens next:</p>
-              <ol className="space-y-2 text-xs text-gray-700 font-[family-name:var(--font-poppins)]">
-                <li className="flex gap-2">
-                  <span className="text-blue-600 font-bold">1.</span>
-                  <span>You'll see a permission request popup</span>
-                </li>
-                <li className="flex gap-2">
-                  <span className="text-blue-600 font-bold">2.</span>
-                  <span>Tap <strong>"Allow" or "Allow Once"</strong></span>
-                </li>
-                <li className="flex gap-2">
-                  <span className="text-blue-600 font-bold">3.</span>
-                  <span>We'll instantly find your best matches</span>
-                </li>
-              </ol>
-            </div>
-
-            <div className="bg-yellow-50 border-l-4 border-yellow-600 p-4 rounded">
-              <p className="font-semibold text-yellow-800 text-xs mb-2">Safari Users:</p>
-              <p className="text-xs text-yellow-700 font-[family-name:var(--font-poppins)]">
-                Make sure you're using <strong>native Safari</strong>, not an in-app browser. If location was previously denied, reset it in Settings → Safari → Location.
-              </p>
-            </div>
-
-            <div className="space-y-3">
+            {currentStep < 4 ? (
               <button
                 type="button"
                 onClick={() => {
-                  setShowLocationModal(false);
-                  setLocationAttempted(false);
-                  handleUseLocation();
+                  if (currentStep === 1 && formData.practiceAreas.length === 0) {
+                    setError('Please select at least one practice area');
+                    return;
+                  }
+                  if (currentStep === 2 && (!formData.state || !formData.lga)) {
+                    setError('Please select your state and LGA');
+                    return;
+                  }
+                  if (currentStep === 3 && !formData.budget) {
+                    setError('Please select a budget range');
+                    return;
+                  }
+                  setError('');
+                  setCurrentStep(currentStep + 1);
                 }}
-                className="w-full px-6 py-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition-all duration-300 font-[family-name:var(--font-poppins)]"
+                className="px-8 py-3 bg-gradient-to-r from-red-500 to-red-600 text-white font-bold rounded-xl hover:shadow-lg transition-all duration-300 font-[family-name:var(--font-poppins)]"
               >
-                ✓ Allow Location Access
+                Next →
               </button>
+            ) : (
               <button
-                type="button"
-                onClick={() => {
-                  setShowLocationModal(false);
-                  setShowManualLocation(true);
-                }}
-                className="w-full px-6 py-3 bg-gray-200 text-gray-700 font-semibold rounded-xl hover:bg-gray-300 transition-all duration-300 font-[family-name:var(--font-poppins)]"
+                type="submit"
+                disabled={loading}
+                className="px-8 py-3 bg-gradient-to-r from-red-500 to-red-600 text-white font-bold rounded-xl hover:shadow-lg transition-all duration-300 font-[family-name:var(--font-poppins)] disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                📋 Select Location Manually
+                {loading ? 'Submitting...' : '✓ Submit & Find Lawyers'}
               </button>
-            </div>
-
-            {permissionStatus === 'denied' && (
-              <div className="bg-red-50 border-l-4 border-red-600 p-4 rounded space-y-2">
-                <p className="text-xs text-red-700 font-[family-name:var(--font-poppins)]">
-                  <strong>⚠️ Location Access Previously Denied</strong><br/>
-                </p>
-                <p className="text-xs text-red-600 font-[family-name:var(--font-poppins)]">
-                  <strong>For Safari:</strong><br/>
-                  Settings → Safari → Location → Select "Allow"<br/><br/>
-                  <strong>For Chrome:</strong><br/>
-                  Settings → Apps → Chrome → Permissions → Location
-                </p>
-              </div>
             )}
           </div>
         </div>
-      )}
-    </main>
+      </section>
+    </form>
   );
 }
 
