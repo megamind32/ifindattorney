@@ -174,7 +174,16 @@ function FormPageContent() {
         throw new Error('Failed to get recommendations');
       }
 
-      sessionStorage.setItem('userFormData', JSON.stringify(formData));
+      const agentResults = await response.json();
+      
+      // Store both form data and agent results
+      const completeData = {
+        ...formData,
+        agentResults,
+        timestamp: new Date().toISOString(),
+      };
+      
+      sessionStorage.setItem('userFormData', JSON.stringify(completeData));
       router.push('/results');
     } catch (err) {
       setError('Failed to submit form. Please try again.');

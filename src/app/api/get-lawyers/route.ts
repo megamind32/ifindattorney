@@ -920,7 +920,93 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Missing state information' }, { status: 400 });
     }
 
-    // Execute advanced location-based matching
+    // ============================================================================
+    // TRY CALLING THE AI AGENT - WITH SMART FALLBACK
+    // ============================================================================
+    // First, try to call the AI agent endpoint
+    // If it fails or times out, fall back to advanced location-based matching
+    
+    let agentData = null;
+    let useAgentResults = false;
+    
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 25000); // 25 second timeout
+      
+      const agentResponse = await fetch(new URL('/api/search-lawyers-agent', req.url), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        signal: controller.signal,
+        body: JSON.stringify({
+          state,
+          lga,
+          practiceAreas: practiceAreas.length > 0 ? practiceAreas : ['General Legal Services'],
+          budget,
+          legalIssue,
+          userLatitude,
+          userLongitude,
+        }),
+      });
+      
+      clearTimeout(timeout);
+      
+      if (agentResponse.ok) {
+        agentData = await agentResponse.json();
+        // Only use agent data if it actually found results
+        if (agentData.success && agentData.results && agentData.results.length > 0) {
+          useAgentResults = true;
+          console.log(`[GET-LAWYERS] ✓ Agent found ${agentData.results.length} results`);
+        }
+      }
+    } catch (agentError) {
+      console.warn('[GET-LAWYERS] Agent call failed, falling back to local matching:', 
+        agentError instanceof Error ? agentError.message : 'Unknown error');
+    }
+
+    // If agent succeeded, return its results
+    if (useAgentResults && agentData) {
+      const transformedResults = {
+        success: agentData.success ?? true,
+        state: agentData.state || state,
+        lga: agentData.lga || lga,
+        legalIssue: legalIssue || agentData.legalIssue || 'Not specified',
+        preferredLocation: lga ? `${lga}, ${state}` : state,
+        practiceArea: practiceAreas.length > 0 ? practiceAreas[0] : 'General Legal Services',
+        selectedPracticeAreas: practiceAreas,
+        budget,
+        searchQuery: agentData.searchQuery || `${practiceAreas.join(', ')} in ${lga || state}`,
+        firmsFound: agentData.firmsFound || (agentData.results?.length || 0),
+        results: agentData.results || [],
+        matchingStrategy: agentData.searchStrategy || `AI Agent Search - Found ${agentData.firmsFound || 0} firms`,
+        strategyDetails: agentData.message || 'AI searched for law firms matching your criteria',
+        totalRecommendations: agentData.firmsFound || (agentData.results?.length || 0),
+        recommendations: agentData.results || [],
+        exactMatches: agentData.results || [],
+        alternatives: [],
+        source: 'AI Agent with Google Maps Integration',
+        sourceDescription: 'Results powered by AI analysis and Google Maps Places API',
+        googleMapsInfo: {
+          enabled: true,
+          description: 'Each firm has Google Maps links for location and directions',
+        },
+        guaranteedResults: (agentData.results?.length || 0) > 0,
+        message: agentData.message || `Found ${agentData.firmsFound || 0} law firm(s) to help with your legal matter`,
+        exactMatchesFound: agentData.firmsFound || (agentData.results?.length || 0),
+        alternativesFound: 0,
+      };
+
+      return NextResponse.json(transformedResults);
+    }
+
+    // ============================================================================
+    // FALLBACK: USE LOCAL MATCHING WITH MOCK DATA
+    // ============================================================================
+    // If agent fails, use the advanced tier-based matching system
+    
+    console.log('[GET-LAWYERS] Using local matching fallback');
+    
     const { tier1, tier2, tier3, tier4, allMatches } = matchLawyers(
       practiceAreas,
       state,
@@ -929,10 +1015,8 @@ export async function POST(req: NextRequest) {
       userLongitude
     );
 
-    // Determine matching strategy based on results
     const { strategy, details, tier } = determineMatchingStrategy(tier1, tier2, tier3, tier4, practiceAreas, state, lga);
 
-    // Build comprehensive response
     const response = {
       success: true,
       legalIssue: legalIssue || 'Not specified',
@@ -942,8 +1026,6 @@ export async function POST(req: NextRequest) {
       practiceArea: practiceAreas.length > 0 ? practiceAreas[0] : 'General Practice',
       selectedPracticeAreas: practiceAreas,
       budget,
-      
-      // Matching tier breakdown
       matchingTiers: {
         tier1: {
           name: 'TIER 1 - EXACT MATCH',
@@ -970,30 +1052,20 @@ export async function POST(req: NextRequest) {
           firms: tier4
         }
       },
-
-      // Summary statistics
       exactMatchesFound: tier1.length,
       alternativesFound: tier2.length + tier3.length + tier4.length,
-      
-      // Matching strategy with detailed explanation
       matchingStrategy: strategy,
       strategyDetails: details,
       matchingTier: tier,
-      
-      // Consolidated recommendations (all matches in priority order)
       totalRecommendations: allMatches.length,
       recommendations: allMatches.length > 0 
         ? allMatches.map(lawyer => ({
             ...lawyer,
             priority: lawyer.matchTier || 'AVAILABLE'
           }))
-        : [], // Should never be empty due to tier 5 fallback
-      
-      // Backward compatibility
+        : [],
       exactMatches: tier1,
       alternatives: [...tier2, ...tier3, ...tier4],
-      
-      // Google Maps integration info
       googleMapsInfo: {
         enabled: true,
         description: 'Each lawyer has Google Maps link for location and directions',
@@ -1001,20 +1073,24 @@ export async function POST(req: NextRequest) {
           ? { latitude: userLatitude, longitude: userLongitude }
           : null
       },
-
-      // Guarantee: Never return empty
       guaranteedResults: allMatches.length > 0,
       message: allMatches.length > 0 
         ? `Found ${allMatches.length} law firm(s) to help with your legal matter`
-        : 'Law firms available to assist with your legal matter'
+        : 'Law firms available to assist with your legal matter',
+      source: 'Local Database with Intelligent Matching',
+      sourceDescription: '(AI Agent temporarily unavailable - using local database)'
     };
 
     return NextResponse.json(response);
   } catch (error) {
     console.error('Error in /api/get-lawyers:', error);
+    
     return NextResponse.json({ 
+      success: false,
       error: 'Failed to retrieve lawyers',
-      message: 'Our system encountered an issue. Please try again or contact support.'
+      message: error instanceof Error 
+        ? error.message 
+        : 'Our system encountered an issue. Please try again or contact support.'
     }, { status: 500 });
   }
 }
