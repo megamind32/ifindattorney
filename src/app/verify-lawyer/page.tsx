@@ -36,13 +36,20 @@ export default function VerifyLawyerPage() {
     setSearched(true);
 
     try {
+      // Add a 15-second timeout for mobile users
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 15000);
+
       const response = await fetch('/api/verify-lawyer', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ lawyerName }),
+        signal: controller.signal,
       });
+
+      clearTimeout(timeoutId);
 
       const data = await response.json();
       
@@ -56,10 +63,15 @@ export default function VerifyLawyerPage() {
       });
     } catch (error) {
       console.error('Search error:', error);
+      
+      const isTimeout = error instanceof Error && error.name === 'AbortError';
+      
       setSearchResults({
         found: false,
         lawyerName: lawyerName,
-        message: 'An error occurred while searching. Please try again.',
+        message: isTimeout 
+          ? 'Search took too long. Please try again or visit the NBA website directly.'
+          : 'An error occurred while searching. Please try again.',
         lawyers: [],
         totalCount: 0,
         nbaLink: 'https://www.nigerianbar.org.ng/find-a-lawyer',

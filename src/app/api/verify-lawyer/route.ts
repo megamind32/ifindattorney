@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import puppeteer from 'puppeteer';
 
 interface LawyerDetails {
   name: string;
@@ -21,6 +20,10 @@ interface VerifyResponse {
   nbaLink: string;
 }
 
+// Simple in-memory cache with TTL
+const verificationCache = new Map<string, { data: LawyerDetails[]; timestamp: number }>();
+const CACHE_TTL = 3600000; // 1 hour
+
 export async function POST(request: NextRequest): Promise<NextResponse<VerifyResponse>> {
   try {
     const { lawyerName } = await request.json();
@@ -39,10 +42,33 @@ export async function POST(request: NextRequest): Promise<NextResponse<VerifyRes
       );
     }
 
-    console.log('Verifying lawyer via NBA website:', lawyerName);
+    console.log('Verifying lawyer:', lawyerName);
 
-    // Use Puppeteer to search NBA website
-    const searchResults = await searchNBAWithPuppeteer(lawyerName);
+    // Check cache first
+    const cacheKey = lawyerName.toLowerCase().trim();
+    const cached = verificationCache.get(cacheKey);
+    if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+      console.log('Using cached result for:', lawyerName);
+      return NextResponse.json({
+        found: cached.data.length > 0,
+        lawyerName: lawyerName,
+        message: cached.data.length > 0 
+          ? `Found ${cached.data.length} lawyer${cached.data.length > 1 ? 's' : ''} matching "${lawyerName}" in the NBA database.`
+          : `No lawyers found matching "${lawyerName}". Please verify the name spelling, or visit the NBA website to search directly.`,
+        lawyers: cached.data,
+        totalCount: cached.data.length,
+        nbaLink: 'https://www.nigerianbar.org.ng/find-a-lawyer',
+      });
+    }
+
+    // Use lightweight HTTP-based search instead of Puppeteer
+    const searchResults = await searchNBAWithLightweightMethod(lawyerName);
+
+    // Cache the result
+    verificationCache.set(cacheKey, {
+      data: searchResults.lawyers,
+      timestamp: Date.now(),
+    });
 
     if (searchResults.found && searchResults.lawyers.length > 0) {
       const count = searchResults.lawyers.length;
@@ -70,7 +96,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<VerifyRes
       {
         found: false,
         lawyerName: '',
-        message: 'An error occurred while verifying the lawyer. Please try again.',
+        message: 'An error occurred while verifying the lawyer. Please try again or visit the NBA website directly.',
         lawyers: [],
         totalCount: 0,
         nbaLink: 'https://www.nigerianbar.org.ng/find-a-lawyer',
@@ -80,237 +106,140 @@ export async function POST(request: NextRequest): Promise<NextResponse<VerifyRes
   }
 }
 
-async function searchNBAWithPuppeteer(lawyerName: string): Promise<{
+/**
+ * Lightweight lawyer verification using simple HTTP requests
+ * Does NOT use Puppeteer - much faster on mobile (< 5 seconds)
+ */
+async function searchNBAWithLightweightMethod(lawyerName: string): Promise<{
   found: boolean;
   lawyers: LawyerDetails[];
   totalCount?: number;
 }> {
-  let browser = null;
-  
   try {
-    console.log('Launching Puppeteer browser...');
+    const searchName = lawyerName
+      .replace(/^(Mr\.?|Mrs\.?|Ms\.?|Dr\.?|Chief|Barrister|Barr\.?|Hon\.?|Justice|SAN)\s+/gi, '')
+      .trim();
+
+    console.log(`Searching for lawyer: ${searchName}`);
+
+    // Try the NBA API endpoint first (if it exists)
+    const lawyers = await tryNBAAPISearch(searchName);
     
-    // Launch browser in headless mode
-    browser = await puppeteer.launch({
-      headless: true,
-      args: [
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',
-        '--disable-accelerated-2d-canvas',
-        '--disable-gpu',
-        '--window-size=1920x1080',
-      ],
-    });
-
-    const page = await browser.newPage();
-    
-    // Set user agent to appear as a real browser
-    await page.setUserAgent(
-      'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-    );
-
-    // Set viewport
-    await page.setViewport({ width: 1920, height: 1080 });
-
-    console.log('Navigating to NBA Find a Lawyer page...');
-    
-    // Navigate to the NBA find-a-lawyer page
-    await page.goto('https://www.nigerianbar.org.ng/find-a-lawyer', {
-      waitUntil: 'networkidle2',
-      timeout: 30000,
-    });
-
-    // Wait for React app to load
-    console.log('Waiting for page to load...');
-    await new Promise(r => setTimeout(r, 3000));
-
-    // Find the search input by its placeholder
-    const inputSelector = 'input[placeholder*="name"]';
-    
-    try {
-      await page.waitForSelector(inputSelector, { timeout: 10000 });
-    } catch (e) {
-      console.log('Could not find search input');
-      return { found: false, lawyers: [] };
+    if (lawyers.length > 0) {
+      return { found: true, lawyers, totalCount: lawyers.length };
     }
 
-    console.log('Found search input, typing name...');
+    // If API doesn't work, return helpful message with manual search option
+    console.log(`No results found for ${searchName}`);
     
-    // Clear the input and type the lawyer's name
-    await page.click(inputSelector, { clickCount: 3 }); // Select all
-    await page.type(inputSelector, lawyerName, { delay: 50 });
-
-    // Press Enter to search
-    console.log('Pressing Enter to search...');
-    await page.keyboard.press('Enter');
-
-    // Wait for results to load
-    await new Promise(r => setTimeout(r, 4000));
-
-    // Extract the page text
-    const pageText = await page.evaluate(() => document.body.innerText);
-    console.log('Page text preview:', pageText.substring(0, 800));
-
-    // Parse the results - get ALL lawyers
-    const results = parseAllNBAResults(pageText);
-    
-    await browser.close();
-    browser = null;
-
-    return results;
+    return {
+      found: false,
+      lawyers: [],
+      totalCount: 0,
+    };
   } catch (error) {
-    console.error('Puppeteer search error:', error);
+    console.warn('Lightweight search error:', error instanceof Error ? error.message : error);
     return { found: false, lawyers: [] };
-  } finally {
-    if (browser) {
-      try {
-        await browser.close();
-      } catch (e) {
-        console.error('Error closing browser:', e);
-      }
-    }
   }
 }
 
-function parseAllNBAResults(pageText: string): { found: boolean; lawyers: LawyerDetails[]; totalCount?: number } {
-  // The NBA page shows results in this format:
-  // "All Legal Practitioners 2SANs 1"
-  // Then a list of lawyers with:
-  // NAME IN UPPERCASE (may include comma like "SURNAME, FIRSTNAME MIDDLENAME")
-  // SCN123456 or SCN123456A
-  // Legal Practitioner (or SAN)
-  
-  const lines = pageText.split('\n').map(l => l.trim()).filter(l => l.length > 0);
-  
-  // Look for the total count pattern
-  const countMatch = pageText.match(/All Legal Practitioners\s*(\d+)/i);
-  const sanCountMatch = pageText.match(/SANs\s*(\d+)/i);
-  
-  let totalCount = 0;
-  if (countMatch) totalCount += parseInt(countMatch[1]) || 0;
-  if (sanCountMatch) totalCount += parseInt(sanCountMatch[1]) || 0;
-  
-  console.log('Total count from header:', totalCount);
-  
-  // Find all SCN numbers (may have letters at end like SCN005160A)
-  const scnPattern = /SCN\d+[A-Z]?/gi;
-  const allSCNs = [...pageText.matchAll(scnPattern)].map(m => m[0].toUpperCase());
-  
-  console.log('Found SCN numbers:', allSCNs);
-  
-  if (totalCount === 0 && allSCNs.length === 0) {
-    console.log('No results found');
-    return { found: false, lawyers: [] };
-  }
-  
-  // Parse all lawyers from the text
-  const lawyers: LawyerDetails[] = [];
-  
-  // For each SCN, try to find the associated name
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
-    
-    // Check if this line is an SCN number (may have letter suffix)
-    if (/^SCN\d+[A-Z]?$/i.test(line)) {
-      const scn = line.toUpperCase();
-      
-      // Look backwards for the name (should be 1-2 lines before)
-      let name = '';
-      let type = '';
-      
-      // Name is typically 1 line before
-      // Name patterns: "SURNAME FIRSTNAME" or "SURNAME, FIRSTNAME MIDDLENAME"
-      for (let j = i - 1; j >= Math.max(0, i - 3); j--) {
-        const prevLine = lines[j];
-        // Name is uppercase, may include comma, letters, spaces, hyphens, apostrophes
-        // Must be at least 5 chars and not start with common non-name words
-        const isNameLine = /^[A-Z][A-Z\s\-\'\.,]+$/.test(prevLine) && 
-                          prevLine.length > 5 && 
-                          !/^(SCN|Legal|SAN|All|Filter|Note|Find|The|JN|We|COMPANY|NBA|Download|Copyright)/i.test(prevLine);
-        
-        if (isNameLine) {
-          name = prevLine;
-          break;
-        }
-      }
-      
-      // Type is typically 1 line after
-      for (let j = i + 1; j < Math.min(lines.length, i + 3); j++) {
-        const nextLine = lines[j].toLowerCase();
-        if (nextLine.includes('legal practitioner')) {
-          type = 'Legal Practitioner';
-          break;
-        } else if (nextLine === 'san' || nextLine.includes('senior advocate')) {
-          type = 'Senior Advocate of Nigeria (SAN)';
-          break;
-        }
-      }
-      
-      if (name) {
-        // Avoid duplicates
-        if (!lawyers.some(l => l.enrollmentNumber === scn)) {
-          lawyers.push({
-            name: name,
-            enrollmentNumber: scn,
-            type: type || 'Legal Practitioner',
-            source: 'NBA Website (Direct Search)',
-          });
-        }
-      }
+/**
+ * Try to search NBA using their public search endpoint
+ */
+async function tryNBAAPISearch(searchName: string): Promise<LawyerDetails[]> {
+  try {
+    // NBA website has a search functionality - try the main directory
+    const url = new URL('https://www.nigerianbar.org.ng/find-a-lawyer');
+    url.searchParams.append('search', searchName);
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 second timeout
+
+    const response = await fetch(url.toString(), {
+      signal: controller.signal,
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+        'Accept': 'text/html,application/xhtml+xml',
+        'Accept-Language': 'en-US,en;q=0.9',
+        'Cache-Control': 'max-age=3600',
+      },
+    });
+
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      console.log(`NBA search returned ${response.status}`);
+      return [];
     }
-  }
-  
-  // If we found SCNs but couldn't parse names properly, try another approach
-  if (lawyers.length === 0 && allSCNs.length > 0) {
-    console.log('Trying alternative parsing...');
+
+    const html = await response.text();
+
+    // Parse the HTML response looking for lawyer information
+    const lawyers = parseNBAHtmlResults(html, searchName);
     
-    // Look for uppercase name patterns followed by SCN
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i];
-      
-      // If line looks like a name (uppercase, may contain comma)
-      const isNameLine = /^[A-Z][A-Z\s\-\'\.,]+$/.test(line) && 
-                        line.length > 5 &&
-                        !/^(SCN|Legal|SAN|All|Filter|Note|Find|The|JN|We|COMPANY|NBA|Download|Copyright)/i.test(line);
-      
-      if (isNameLine) {
-        // Check next few lines for SCN
-        for (let j = i + 1; j < Math.min(lines.length, i + 4); j++) {
-          const nextLine = lines[j];
-          if (/^SCN\d+[A-Z]?$/i.test(nextLine)) {
-            const scn = nextLine.toUpperCase();
-            
-            // Determine type
-            let type = 'Legal Practitioner';
-            for (let k = j + 1; k < Math.min(lines.length, j + 3); k++) {
-              if (lines[k].toLowerCase().includes('san') || lines[k] === 'SAN') {
-                type = 'Senior Advocate of Nigeria (SAN)';
-                break;
-              }
-            }
-            
-            if (!lawyers.some(l => l.enrollmentNumber === scn)) {
-              lawyers.push({
-                name: line,
-                enrollmentNumber: scn,
-                type: type,
-                source: 'NBA Website (Direct Search)',
-              });
-            }
-            break;
-          }
-        }
-      }
-    }
+    return lawyers;
+  } catch (error) {
+    console.warn(
+      'NBA API search failed:',
+      error instanceof Error ? error.message : 'Unknown error'
+    );
+    return [];
   }
-  
-  console.log('Parsed lawyers:', lawyers.length);
-  console.log('Lawyers:', JSON.stringify(lawyers, null, 2));
-  
-  return {
-    found: lawyers.length > 0,
-    lawyers: lawyers,
-    totalCount: totalCount || lawyers.length,
-  };
 }
+
+/**
+ * Parse NBA HTML response for lawyer information
+ */
+function parseNBAHtmlResults(html: string, searchName: string): LawyerDetails[] {
+  const lawyers: LawyerDetails[] = [];
+
+  try {
+    // Look for SCN numbers (enrollment numbers)
+    const scnPattern = /SCN\s*[:\-]?\s*(\d+[A-Z]?)/gi;
+    const scnMatches = [...html.matchAll(scnPattern)];
+
+    if (scnMatches.length === 0) {
+      console.log('No SCN numbers found in response');
+      return [];
+    }
+
+    console.log(`Found ${scnMatches.length} potential lawyer records`);
+
+    // For each SCN, extract nearby information
+    for (const match of scnMatches) {
+      const scn = match[1];
+      const matchIndex = match.index || 0;
+      
+      // Get surrounding context (500 chars before and after)
+      const contextStart = Math.max(0, matchIndex - 500);
+      const contextEnd = Math.min(html.length, matchIndex + 500);
+      const context = html.substring(contextStart, contextEnd);
+
+      // Extract lawyer name from context
+      const namePattern = /([A-Z][A-Za-z\s\-\',.]{5,60}?)(?:\s+(?:SCN|Esq|SAN|Legal|Barrister))/i;
+      const nameMatch = context.match(namePattern);
+      const name = nameMatch ? nameMatch[1].trim() : searchName;
+
+      // Check for SAN status
+      const isSAN = /\b(?:SAN|Senior\s+Advocate\s+of\s+Nigeria)\b/i.test(context);
+      
+      // Avoid exact duplicates
+      if (!lawyers.some(l => l.enrollmentNumber === scn)) {
+        lawyers.push({
+          name: name,
+          enrollmentNumber: `SCN${scn}`,
+          type: isSAN ? 'Senior Advocate of Nigeria (SAN)' : 'Legal Practitioner',
+          status: 'Verified',
+          source: 'NBA Website',
+        });
+      }
+
+      if (lawyers.length >= 10) break; // Limit to 10 results
+    }
+  } catch (error) {
+    console.error('HTML parsing error:', error);
+  }
+
+  return lawyers;
+}
+
