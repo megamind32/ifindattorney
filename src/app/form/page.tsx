@@ -55,6 +55,20 @@ function FormPageContent() {
     checkLocationPermission();
   }, []);
 
+  // Auto-request geolocation when user reaches Step 2
+  useEffect(() => {
+    if (currentStep === 2 && !locationAttempted && !formData.state) {
+      // Only auto-request if permission might be granted
+      if (permissionStatus === 'granted' || permissionStatus === 'prompt') {
+        // Small delay to ensure UI is ready
+        const timer = setTimeout(() => {
+          setShowLocationModal(true);
+        }, 500);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [currentStep, locationAttempted, formData.state, permissionStatus]);
+
   const checkLocationPermission = async () => {
     try {
       if ('permissions' in navigator) {
@@ -102,11 +116,11 @@ function FormPageContent() {
       return;
     }
 
-    // Use high accuracy and proper timeout settings for mobile
+    // Optimized options for mobile: balance accuracy and speed
     const options = {
-      enableHighAccuracy: true,
-      timeout: 60000,
-      maximumAge: 0
+      enableHighAccuracy: false,  // Faster on mobile (uses WiFi/cell triangulation)
+      timeout: 15000,              // 15 seconds timeout for mobile networks
+      maximumAge: 300000           // Cache results for 5 minutes
     };
 
     navigator.geolocation.getCurrentPosition(
@@ -144,7 +158,7 @@ function FormPageContent() {
         setLocationAttempted(true);
 
         if (error.code === 1) {
-          setError('Location permission denied. Please enable location access and try again.');
+          setError('Location permission denied. Please enable location access in your settings and try again.');
         } else if (error.code === 2) {
           setError('Unable to retrieve your location. Please try again or use manual selection.');
         } else if (error.code === 3) {
