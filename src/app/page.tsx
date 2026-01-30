@@ -69,29 +69,15 @@ export default function Home() {
 
   return (
     <main className="min-h-screen bg-white page-transition-enter">
-      {/* Hamburger Menu and About Creator - Top Right */}
+      {/* Hamburger Menu - Top Right */}
       <div className="absolute top-4 right-4 sm:top-6 sm:right-6 z-50 flex gap-2 items-center">
-        <a 
-          href="/creator"
-          className="inline-flex items-center gap-2 bg-white/90 backdrop-blur-sm text-gray-700 font-medium px-4 py-2 rounded-full shadow-lg hover:shadow-xl hover:bg-red-50 hover:text-red-600 transition-all duration-300 group font-[family-name:var(--font-poppins)] text-sm border border-gray-100"
-        >
-          <div className="w-6 h-6 rounded-full bg-gradient-to-br from-red-500 to-red-600 flex items-center justify-center">
-            <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
-            </svg>
-          </div>
-          <span>About Creator</span>
-          <svg className="w-4 h-4 transition-transform group-hover:translate-x-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-          </svg>
-        </a>
         <HamburgerMenu />
       </div>
       {/* Anchor for Contact Creator */}
       <div id="contact-creator"></div>
 
       {/* Top Quarter - Rotating Image Section with Unique Shape and Overlapping Heading */}
-      <section id="find-law-firm" className="relative w-full h-80 sm:h-96 mt-12 sm:mt-0 overflow-hidden bg-gray-900 shadow-lg" style={{ clipPath: 'polygon(0 0, 100% 0, 100% 85%, 0 100%)' }}>
+      <section id="find-law-firm" className="relative w-full h-80 sm:h-96 md:h-[420px] mt-12 sm:mt-0 overflow-hidden bg-gray-900 shadow-lg" style={{ clipPath: 'polygon(0 0, 100% 0, 100% 85%, 0 100%)' }}>
         <div className="absolute inset-0">
           <img
             src={backgroundImages[currentImageIndex]}
@@ -105,11 +91,11 @@ export default function Home() {
 
         {/* Welcome Heading - Direct Overlap Without Container */}
         <div className="absolute inset-0 flex flex-col items-center justify-center px-4 content-transition">
-          <h1 className="text-3xl sm:text-5xl md:text-6xl font-bold font-[family-name:var(--font-playfair)] text-white mb-4 leading-tight max-w-4xl text-center italic" 
+          <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold font-[family-name:var(--font-playfair)] text-white mb-4 leading-tight max-w-4xl text-center italic" 
               style={{ letterSpacing: '0.02em', textShadow: '0 6px 20px rgba(0,0,0,0.6), 0 2px 8px rgba(0,0,0,0.5)', fontWeight: 700 }}>
             Welcome to <span className="text-transparent bg-clip-text bg-gradient-to-r from-red-300 via-red-200 to-pink-300">IfindAttorney</span>
           </h1>
-          <p className="text-sm sm:text-lg text-white/95 font-[family-name:var(--font-poppins)] leading-relaxed mb-4 font-medium max-w-2xl text-center" 
+          <p className="text-sm sm:text-base md:text-lg text-white/95 font-[family-name:var(--font-poppins)] leading-relaxed mb-4 font-medium max-w-2xl text-center" 
              style={{ textShadow: '0 4px 12px rgba(0,0,0,0.6)' }}>
             Your one stop tool for finding the most suitable firm for you
           </p>
@@ -126,14 +112,14 @@ export default function Home() {
       </section>
 
       {/* Main Content */}
-      <section id="calculate-fees" className="px-4 sm:px-6 py-12 max-w-5xl mx-auto">
+      <section id="calculate-fees" className="px-4 sm:px-6 md:px-8 py-12 md:py-16 max-w-7xl mx-auto">
         {/* Feature Cards Intro - Stylish Heading */}
-        <div className="mb-16 content-transition">
+        <div className="mb-16 md:mb-20 content-transition">
           <div className="relative inline-block">
-            <h2 className="text-3xl sm:text-4xl font-bold font-[family-name:var(--font-playfair)] text-gray-900"
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold font-[family-name:var(--font-playfair)] text-gray-900"
                 style={{ letterSpacing: '0.02em' }}>
               Get started with any of our
-              <span className="block text-transparent bg-clip-text bg-gradient-to-r from-red-600 to-red-500 mt-2">
+              <span className="block text-transparent bg-clip-text bg-gradient-to-r from-red-600 to-red-500 mt-2 md:mt-3">
                 free to use tool
               </span>
             </h2>
@@ -144,13 +130,13 @@ export default function Home() {
         {/* Feature Cards - NBA Style Design */}
         <div className="space-y-6 content-transition">
           {/* Card 1: Find a Lawyer - NBA Style Hero Card */}
-          <div id="find-law-firm-card" className="relative overflow-hidden bg-gradient-to-br from-red-600 via-red-700 to-red-800 rounded-3xl shadow-xl hover:shadow-2xl transition-all duration-300 cursor-pointer group min-h-[120px] sm:min-h-[160px] lg:min-h-[280px] active:scale-105 active:brightness-110"
+          <div id="find-law-firm-card" className="relative overflow-hidden bg-gradient-to-br from-red-600 via-red-700 to-red-800 rounded-3xl shadow-xl hover:shadow-2xl transition-all duration-300 cursor-pointer group min-h-[120px] sm:min-h-[160px] md:min-h-[200px] lg:min-h-[280px] active:scale-105 active:brightness-110"
             onClick={handleFindLawyer}>
             {/* Decorative Elements */}
-            <div className="absolute top-0 right-0 w-32 h-32 sm:w-64 sm:h-64 bg-red-500/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
-            <div className="absolute bottom-0 left-0 w-24 h-24 sm:w-48 sm:h-48 bg-red-400/15 rounded-full blur-2xl translate-y-1/2 -translate-x-1/2"></div>
+            <div className="absolute top-0 right-0 w-32 h-32 sm:w-64 sm:h-64 md:w-80 md:h-80 bg-red-500/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
+            <div className="absolute bottom-0 left-0 w-24 h-24 sm:w-48 sm:h-48 md:w-64 md:h-64 bg-red-400/15 rounded-full blur-2xl translate-y-1/2 -translate-x-1/2"></div>
             
-            <div id="verify-lawyer" className="relative z-10 p-2 sm:p-8 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-2 lg:gap-8">
+            <div id="verify-lawyer" className="relative z-10 p-3 sm:p-6 md:p-8 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 md:gap-6 lg:gap-8">
               <div className="flex-1 w-full p-0 sm:p-3 flex flex-col justify-center">
                 {/* Badge */}
                 <div className="inline-flex items-center gap-1 sm:gap-2 bg-white/15 backdrop-blur-sm rounded-full px-2.5 sm:px-4 py-1.5 sm:py-2 mb-2 sm:mb-3 w-fit border border-white/20">
@@ -161,13 +147,13 @@ export default function Home() {
                 </div>
                 
                 {/* Heading */}
-                <h3 className="text-xl sm:text-4xl lg:text-5xl font-black font-[family-name:var(--font-playfair)] text-white mb-1 sm:mb-2 leading-tight italic">
+                <h3 className="text-xl sm:text-3xl md:text-4xl lg:text-5xl font-black font-[family-name:var(--font-playfair)] text-white mb-2 md:mb-3 lg:mb-2 leading-tight italic">
                   Find Your<br className="hidden sm:block" />
                   <span className="text-red-300 drop-shadow-lg">Perfect Lawyer</span>
                 </h3>
                 
                 {/* Description */}
-                <p className="text-xs sm:text-base lg:text-lg text-red-100 font-[family-name:var(--font-poppins)] font-medium mb-3 sm:mb-5 leading-snug sm:leading-relaxed max-w-md line-clamp-2 sm:line-clamp-none">
+                <p className="text-xs sm:text-sm md:text-base lg:text-lg text-red-100 font-[family-name:var(--font-poppins)] font-medium mb-3 md:mb-4 lg:mb-5 leading-snug sm:leading-relaxed max-w-md md:max-w-lg line-clamp-2 sm:line-clamp-3 md:line-clamp-none">
                   Tell us your legal issue and location. We'll match you with the best law firms across Nigeria in seconds.
                 </p>
                 
@@ -187,7 +173,7 @@ export default function Home() {
               </div>
               
               {/* Search Illustration - scaled responsively */}
-              <div className="flex items-center justify-center w-24 h-24 sm:w-40 sm:h-40 lg:w-1/2 lg:h-80 mt-1 sm:mt-0 flex-shrink-0">
+              <div className="flex items-center justify-center w-24 h-24 sm:w-40 sm:h-40 md:w-48 md:h-48 lg:w-1/2 lg:h-80 mt-1 sm:mt-0 flex-shrink-0">
                 <div className="absolute inset-0 bg-white/10 rounded-full blur-3xl scale-75"></div>
                 <img 
                   src="/search.svg" 
@@ -202,13 +188,13 @@ export default function Home() {
           </div>
 
           {/* Card 2: Verify Lawyer - NBA Style Hero Card */}
-          <div id="verify-lawyer-card" className="relative overflow-hidden bg-gradient-to-br from-red-600 via-red-700 to-red-800 rounded-3xl shadow-xl hover:shadow-2xl transition-all duration-300 cursor-pointer group min-h-[120px] sm:min-h-[160px] lg:min-h-[280px] active:scale-105 active:brightness-110"
+          <div id="verify-lawyer-card" className="relative overflow-hidden bg-gradient-to-br from-red-600 via-red-700 to-red-800 rounded-3xl shadow-xl hover:shadow-2xl transition-all duration-300 cursor-pointer group min-h-[120px] sm:min-h-[160px] md:min-h-[200px] lg:min-h-[280px] active:scale-105 active:brightness-110"
             onClick={handleVerifyLawyer}>
             {/* Decorative Elements */}
-            <div className="absolute top-0 right-0 w-32 h-32 sm:w-64 sm:h-64 bg-red-500/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
-            <div className="absolute bottom-0 left-0 w-24 h-24 sm:w-48 sm:h-48 bg-red-400/15 rounded-full blur-2xl translate-y-1/2 -translate-x-1/2"></div>
+            <div className="absolute top-0 right-0 w-32 h-32 sm:w-64 sm:h-64 md:w-80 md:h-80 bg-red-500/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
+            <div className="absolute bottom-0 left-0 w-24 h-24 sm:w-48 sm:h-48 md:w-64 md:h-64 bg-red-400/15 rounded-full blur-2xl translate-y-1/2 -translate-x-1/2"></div>
             
-            <div className="relative z-10 p-2 sm:p-8 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-2 lg:gap-8">
+            <div className="relative z-10 p-3 sm:p-6 md:p-8 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 md:gap-6 lg:gap-8">
               <div className="flex-1 w-full p-0 sm:p-3 flex flex-col justify-center">
                 {/* Badge - Hidden on mobile */}
                 <div className="inline-flex items-center gap-1 sm:gap-2 bg-white/15 backdrop-blur-sm rounded-full px-2.5 sm:px-4 py-1.5 sm:py-2 mb-2 sm:mb-3 w-fit border border-white/20">
@@ -219,13 +205,13 @@ export default function Home() {
                 </div>
                 
                 {/* Heading */}
-                <h3 className="text-xl sm:text-4xl lg:text-5xl font-black font-[family-name:var(--font-playfair)] text-white mb-1 sm:mb-2 leading-tight italic">
+                <h3 className="text-xl sm:text-3xl md:text-4xl lg:text-5xl font-black font-[family-name:var(--font-playfair)] text-white mb-2 md:mb-3 lg:mb-2 leading-tight italic">
                   Verify<br className="hidden sm:block" />
                   <span className="text-green-300 drop-shadow-lg">Lawyer</span>
                 </h3>
                 
                 {/* Description */}
-                <p className="text-xs sm:text-base lg:text-lg text-red-100 font-[family-name:var(--font-poppins)] font-medium mb-3 sm:mb-5 leading-snug sm:leading-relaxed max-w-md line-clamp-2 sm:line-clamp-none">
+                <p className="text-xs sm:text-sm md:text-base lg:text-lg text-red-100 font-[family-name:var(--font-poppins)] font-medium mb-3 md:mb-4 lg:mb-5 leading-snug sm:leading-relaxed max-w-md md:max-w-lg line-clamp-2 sm:line-clamp-3 md:line-clamp-none">
                   Instantly check if any lawyer is registered with the Nigerian Bar Association. Protect yourself from fraudulent practitioners.
                 </p>
                 
@@ -245,7 +231,7 @@ export default function Home() {
               </div>
               
               {/* 2D Illustration - scaled responsively */}
-              <div className="flex items-center justify-center w-24 h-24 sm:w-40 sm:h-40 lg:w-1/2 lg:h-80 mt-1 sm:mt-0 flex-shrink-0">
+              <div className="flex items-center justify-center w-24 h-24 sm:w-40 sm:h-40 md:w-48 md:h-48 lg:w-1/2 lg:h-80 mt-1 sm:mt-0 flex-shrink-0">
                 <svg width="280" height="280" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg" className="opacity-95">
                   {/* Background Glow */}
                   <circle cx="100" cy="110" r="80" fill="white" fillOpacity="0.05"/>

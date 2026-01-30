@@ -1125,6 +1125,19 @@ function summarizeContent(rawText: string, firmName: string, maxLength: number =
 }
 
 /**
+ * Build quick summary from firm name and practice areas only
+ * Used when only Google Maps data is available (no custom research)
+ */
+function buildQuickSummary(firmName: string, practiceAreas: string[]): string {
+  if (practiceAreas.length === 0) {
+    return `${firmName} is a professional law firm providing comprehensive legal services for individuals and businesses.`;
+  }
+  
+  const areas = practiceAreas.slice(0, 3).join(', ');
+  return `${firmName} specializes in ${areas} and related legal matters.`;
+}
+
+/**
  * Research a firm by directly fetching their website
  * Now includes NBA verification for head of chambers
  */
@@ -1635,113 +1648,81 @@ async function agent2_ResearchFirms(
   googleSearchApiKey: string | undefined,
   searchEngineId: string | undefined
 ): Promise<ResearchedFirmData[]> {
-  console.log(`\n[AGENT 2 - RESEARCH] Starting research on ${rawFirms.length} firms`);
+  console.log(`\n[AGENT 2 - SELECTIVE RESEARCH] Processing ${rawFirms.length} firms from Google Maps`);
   console.log(`[AGENT 2] User requires practice areas: ${userPracticeAreas.join(', ')}`);
+  console.log(`[AGENT 2] Strategy: Research firms WITH websites, infer for firms WITHOUT websites`);
   
   const researchedFirms: ResearchedFirmData[] = [];
-  const hasGoogleSearch = googleSearchApiKey && searchEngineId;
-
-  if (!hasGoogleSearch) {
-    console.log(`[AGENT 2] ⚠️ Google Search API not configured - will rely on direct website access`);
-  }
 
   for (const firm of rawFirms) {
-    console.log(`[AGENT 2] Researching: ${firm.firmName}`);
-    
     let practiceAreas: string[] = [];
     let specializations: string[] = [];
     let firmSummary = '';
     let lawyersInfo = '';
     let servicesOffered = '';
-    let researchSource = 'Name Analysis';
+    let researchSource = 'Name Inference';
+
+    console.log(`[AGENT 2] Processing: ${firm.firmName}`);
+
+    // ============================================================================
+    // AGENT 2 DECISION: Only analyze website IF it exists
+    // ============================================================================
     
-    // STEP 1: Try to directly fetch and read the firm's website
     if (firm.website) {
-      console.log(`[AGENT 2] 🌐 Attempting direct website access: ${firm.website}`);
+      console.log(`[AGENT 2] 🌐 Found website: ${firm.website} - Analyzing...`);
+      
+      // Fetch and analyze the firm's website
       const websiteResult = await researchFirmWebsite(
         firm.firmName, 
-        firm.website,
-        googleSearchApiKey,  // Pass API keys for head of chambers search
-        searchEngineId
-      );
-      
-      if (websiteResult && websiteResult.firmSummary.length > 100) {
-        practiceAreas = websiteResult.practiceAreas;
-        specializations = websiteResult.specializations;
-        firmSummary = websiteResult.firmSummary;
-        lawyersInfo = websiteResult.lawyersInfo;
-        servicesOffered = websiteResult.servicesOffered;
-        researchSource = 'Firm Website (Direct)';
-        
-        console.log(`[AGENT 2] ✓ Successfully read website content: ${firmSummary.substring(0, 80)}...`);
-      }
-    }
-    
-    // STEP 2: Fall back to Google Search if website access failed
-    if (!firmSummary && hasGoogleSearch) {
-      console.log(`[AGENT 2] 🔍 Falling back to Google Search for ${firm.firmName}`);
-      const searchResult = await googleSearch(
-        firm.firmName,
         firm.website,
         googleSearchApiKey,
         searchEngineId
       );
       
-      if (searchResult) {
-        practiceAreas = searchResult.practiceAreas;
-        specializations = searchResult.specializations;
-        firmSummary = searchResult.firmSummary;
-        lawyersInfo = searchResult.lawyersInfo;
-        servicesOffered = searchResult.servicesOffered;
-        researchSource = searchResult.source;
+      if (websiteResult && websiteResult.practiceAreas.length > 0) {
+        practiceAreas = websiteResult.practiceAreas;
+        specializations = websiteResult.specializations;
+        firmSummary = websiteResult.firmSummary;
+        lawyersInfo = websiteResult.lawyersInfo;
+        servicesOffered = websiteResult.servicesOffered;
+        researchSource = 'Website Analysis';
         
-        console.log(`[AGENT 2] ✓ Found info from ${researchSource}: ${practiceAreas.length} practice areas`);
-      }
-    }
-    
-    // STEP 3: Fallback - Infer from firm name if no practice areas found
-    if (practiceAreas.length === 0) {
-      practiceAreas = inferPracticeAreasFromName(firm.firmName, firm.website);
-    }
-    
-    // STEP 4: Always generate structured summary if we don't have one yet
-    if (!firmSummary || firmSummary.length < 100) {
-      // Try AI-generated summary first
-      const aiSummary = await generateFirmSummaryWithAI(
-        firm.firmName,
-        '', // No website content available
-        '', // No Google snippets
-        practiceAreas,
-        null, // No head of chambers found
-        null  // No years post-call
-      );
-      
-      if (aiSummary) {
-        firmSummary = aiSummary;
-        researchSource = 'AI Analysis';
+        console.log(`[AGENT 2] ✅ Website analyzed - Found ${practiceAreas.length} practice areas: ${practiceAreas.join(', ')}`);
       } else {
-        // Fall back to regex-based summary
-        firmSummary = buildStructuredSummary(
-          firm.firmName,
-          null,  // headOfChambers - not found
-          practiceAreas,
-          '',    // teamInfo - not found
-          null,  // yearsPostCall - not verified
-          '',    // achievements - not found
-          firm.website
-        );
-        researchSource = 'Analysis';
+        // Website fetch failed or no practice areas found - fall back to name inference
+        console.log(`[AGENT 2] ⚠️ Website analysis failed for ${firm.website} - Using name inference instead`);
+        practiceAreas = inferPracticeAreasFromName(firm.firmName, firm.website);
+        researchSource = 'Name Inference (Website unavailable)';
       }
+    } else {
+      // NO WEBSITE: Use Google Maps data only - no name inference
+      console.log(`[AGENT 2] ⊘ No website available - Using Google Maps data only`);
+      // practiceAreas remains empty unless Google Maps has that info
+      // Will be set to "General Practice" below if empty
+      researchSource = 'Google Maps (No website)';
     }
-    
+
+    // Ensure we have practice areas - use Google Maps data or default to General Practice
+    if (practiceAreas.length === 0) {
+      // No practice area info found - mark as General Practice
+      practiceAreas = ['General Practice'];
+      console.log(`[AGENT 2] ℹ️ No practice area info found - Defaulting to General Practice`);
+    }
+
+    // Generate summary if we don't have one from website
+    if (!firmSummary || firmSummary.length < 50) {
+      firmSummary = buildQuickSummary(firm.firmName, practiceAreas);
+    }
+
     // Ensure services and lawyers info are populated
     if (!servicesOffered || servicesOffered.length < 10) {
       servicesOffered = practiceAreas.length > 0 
-        ? `Legal services including ${practiceAreas.join(', ')}.`
+        ? `Provides legal services in ${practiceAreas.join(', ')}.`
         : 'Comprehensive legal services for individuals and businesses.';
     }
+
     if (!lawyersInfo) {
-      lawyersInfo = 'The firm has qualified legal professionals ready to assist with your legal needs.';
+      lawyersInfo = `Contact ${firm.firmName} directly for information about their legal team and experience.`;
     }
 
     // Check if firm matches user's required practice areas
@@ -1772,11 +1753,10 @@ async function agent2_ResearchFirms(
       if (firm.rating) {
         matchScore += firm.rating * 3; // +3 per rating star
       }
-      
-      if (researchSource === 'Firm Website') {
-        matchScore += 10; // Bonus for verified info from website
-      } else if (researchSource === 'Google Search') {
-        matchScore += 5;
+
+      // Bonus: Higher confidence for website-verified data
+      if (researchSource === 'Website Analysis') {
+        matchScore += 15; // Bonus for verified info from actual website
       }
       
       matchScore = Math.min(98, matchScore); // Cap at 98
@@ -1807,7 +1787,8 @@ async function agent2_ResearchFirms(
         researchSource
       });
 
-      console.log(`[AGENT 2] ✓ ${firm.firmName} - Matched: ${matchedAreas.join(', ') || 'General Practice'}`);
+      const sourceLabel = researchSource === 'Website Analysis' ? '🔍' : '�';
+      console.log(`[AGENT 2] ✓ ${sourceLabel} ${firm.firmName} - Match: ${matchedAreas.join(', ') || 'General Practice'} (${researchSource})`);
     } else {
       console.log(`[AGENT 2] ✗ ${firm.firmName} - No matching practice areas`);
     }

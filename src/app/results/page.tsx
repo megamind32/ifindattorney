@@ -191,141 +191,190 @@ function FirmCard({ lawyer, index, isMatch, userPracticeAreas }: FirmCardProps) 
       </div>
 
       <div className="p-6 space-y-4">
+        {/* Law Firm Name */}
         <div>
           <h3 className="text-xl font-bold text-gray-900 group-hover:text-red-600 transition-colors line-clamp-2">
             {lawyer.firmName}
           </h3>
-          <p className="text-sm text-gray-500 mt-1 flex items-center gap-1">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          {lawyer.contactPerson && (
+            <p className="text-sm text-gray-500 mt-1">
+              Contact: <span className="font-medium">{lawyer.contactPerson}</span>
+            </p>
+          )}
+        </div>
+
+        {/* Address */}
+        {lawyer.address && (
+          <div className="flex items-start gap-3 text-sm bg-red-50 p-3 rounded-lg">
+            <svg className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
             </svg>
-            {lawyer.location}
-          </p>
-        </div>
-
-        <div className="space-y-2">
-          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Practice Areas</p>
-          <div className="flex flex-wrap gap-2">
-            {lawyer.practiceAreas?.slice(0, 4).map((area, idx) => (
-              <span
-                key={idx}
-                className={`
-                  px-3 py-1 rounded-full text-xs font-medium transition-all
-                  ${matchingAreas.includes(area) 
-                    ? 'bg-red-100 text-red-700 ring-2 ring-red-200' 
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                  }
-                `}
-              >
-                {area}
-              </span>
-            ))}
-            {(lawyer.practiceAreas?.length || 0) > 4 && (
-              <span className="px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-500">
-                +{(lawyer.practiceAreas?.length || 0) - 4} more
-              </span>
-            )}
+            <div>
+              <p className="font-semibold text-gray-700">Address</p>
+              <p className="text-gray-600">{lawyer.address}</p>
+            </div>
           </div>
-        </div>
-
-        {(lawyer.description || lawyer.matchReason) && (
-          <p className="text-sm text-gray-600 line-clamp-2">
-            {lawyer.description || lawyer.matchReason}
-          </p>
         )}
 
-        <div className={`space-y-3 overflow-hidden transition-all duration-300 ${expanded ? 'max-h-96' : 'max-h-0'}`}>
-          <div className="pt-4 border-t border-gray-100 space-y-3">
-            {lawyer.address && (
-              <div className="flex items-start gap-3 text-sm">
-                <div className="w-8 h-8 rounded-full bg-red-50 flex items-center justify-center flex-shrink-0">
-                  <svg className="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                  </svg>
-                </div>
-                <div>
-                  <p className="font-medium text-gray-700">Address</p>
-                  <p className="text-gray-500">{lawyer.address}</p>
-                </div>
-              </div>
-            )}
-            
-            {lawyer.phone && (
-              <div className="flex items-start gap-3 text-sm">
-                <div className="w-8 h-8 rounded-full bg-red-50 flex items-center justify-center flex-shrink-0">
-                  <svg className="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                  </svg>
-                </div>
-                <div>
-                  <p className="font-medium text-gray-700">Phone</p>
-                  <a href={`tel:${lawyer.phone}`} className="text-red-600 hover:text-red-700 font-medium">
-                    {lawyer.phone}
-                  </a>
-                </div>
-              </div>
-            )}
-
-            {lawyer.email && (
-              <div className="flex items-start gap-3 text-sm">
-                <div className="w-8 h-8 rounded-full bg-red-50 flex items-center justify-center flex-shrink-0">
-                  <svg className="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                  </svg>
-                </div>
-                <div>
-                  <p className="font-medium text-gray-700">Email</p>
-                  <a href={`mailto:${lawyer.email}`} className="text-red-600 hover:text-red-700 font-medium break-all">
-                    {lawyer.email}
-                  </a>
-                </div>
-              </div>
-            )}
-
-            {lawyer.website && (
-              <div className="flex items-start gap-3 text-sm">
-                <div className="w-8 h-8 rounded-full bg-red-50 flex items-center justify-center flex-shrink-0">
-                  <svg className="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
-                  </svg>
-                </div>
-                <div>
-                  <p className="font-medium text-gray-700">Website</p>
-                  <a 
-                    href={lawyer.website.startsWith('http') ? lawyer.website : `https://${lawyer.website}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-red-600 hover:text-red-700 font-medium break-all"
-                  >
-                    Visit Website →
-                  </a>
-                </div>
-              </div>
-            )}
+        {/* Practice Areas */}
+        {lawyer.practiceAreas && lawyer.practiceAreas.length > 0 && (
+          <div className="space-y-2">
+            <p className="text-xs font-semibold text-gray-600 uppercase tracking-wider">Practice Areas</p>
+            <div className="flex flex-wrap gap-2">
+              {lawyer.practiceAreas.map((area, idx) => (
+                <span
+                  key={idx}
+                  className={`
+                    px-3 py-1 rounded-full text-xs font-medium transition-all
+                    ${matchingAreas.includes(area) 
+                      ? 'bg-red-100 text-red-700 ring-2 ring-red-300' 
+                      : 'bg-gray-100 text-gray-600'
+                    }
+                  `}
+                >
+                  {area}
+                </span>
+              ))}
+            </div>
           </div>
+        )}
+
+        {/* Contact Details - Always Visible */}
+        <div className="space-y-3 border-t border-gray-200 pt-4">
+          {/* Phone */}
+          {lawyer.phone && (
+            <div className="flex items-center gap-3 text-sm">
+              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-red-500 to-red-600 flex items-center justify-center flex-shrink-0">
+                <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                </svg>
+              </div>
+              <div>
+                <p className="font-semibold text-gray-700">Phone</p>
+                <a href={`tel:${lawyer.phone}`} className="text-red-600 hover:text-red-700 font-medium hover:underline">
+                  {lawyer.phone}
+                </a>
+              </div>
+            </div>
+          )}
+
+          {/* Email */}
+          {lawyer.email && (
+            <div className="flex items-center gap-3 text-sm">
+              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-red-500 to-red-600 flex items-center justify-center flex-shrink-0">
+                <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                </svg>
+              </div>
+              <div>
+                <p className="font-semibold text-gray-700">Email</p>
+                <a href={`mailto:${lawyer.email}`} className="text-red-600 hover:text-red-700 font-medium hover:underline break-all">
+                  {lawyer.email}
+                </a>
+              </div>
+            </div>
+          )}
+
+          {/* Website */}
+          {lawyer.website && (
+            <div className="flex items-center gap-3 text-sm">
+              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-red-500 to-red-600 flex items-center justify-center flex-shrink-0">
+                <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
+                </svg>
+              </div>
+              <div className="flex-1">
+                <p className="font-semibold text-gray-700">Website</p>
+                <a 
+                  href={lawyer.website.startsWith('http') ? lawyer.website : `https://${lawyer.website}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-red-600 hover:text-red-700 font-medium hover:underline break-all inline-flex items-center gap-1"
+                >
+                  Visit Website
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                  </svg>
+                </a>
+              </div>
+            </div>
+          )}
         </div>
 
+        {/* Location Summary */}
+        {lawyer.location && (
+          <div className="flex items-center gap-2 text-sm text-gray-600 border-t border-gray-200 pt-4">
+            <svg className="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+            </svg>
+            <span><strong>{lawyer.location}</strong></span>
+            {lawyer.distance && (
+              <span className="ml-auto text-red-600 font-semibold">≈ {lawyer.distance.toFixed(1)} km away</span>
+            )}
+          </div>
+        )}
+
+        {/* Match Reason */}
+        {lawyer.matchReason && (
+          <div className="bg-gradient-to-r from-red-50 to-rose-50 p-3 rounded-lg border-l-4 border-red-500">
+            <p className="text-xs font-semibold text-red-700 mb-1">Match Reason</p>
+            <p className="text-sm text-red-600">{lawyer.matchReason}</p>
+          </div>
+        )}
+
+        {/* Additional Action Button */}
         <button
           onClick={() => setExpanded(!expanded)}
-          className="w-full text-center text-sm text-gray-500 hover:text-red-600 transition-colors py-2 flex items-center justify-center gap-1"
+          className="w-full text-center text-sm font-medium text-gray-600 hover:text-red-600 transition-colors py-2 flex items-center justify-center gap-1 border border-gray-200 rounded-lg hover:border-red-300 hover:bg-red-50"
         >
           {expanded ? (
             <>
-              <span>Show Less</span>
+              <span>Show Less Info</span>
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
               </svg>
             </>
           ) : (
             <>
-              <span>View Contact Details</span>
+              <span>View More Info</span>
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
               </svg>
             </>
           )}
         </button>
+
+        {/* Expandable Additional Info */}
+        {expanded && (
+          <div className="space-y-3 bg-gray-50 p-4 rounded-lg border border-gray-200">
+            {lawyer.description && (
+              <div>
+                <p className="text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1">About</p>
+                <p className="text-sm text-gray-600">{lawyer.description}</p>
+              </div>
+            )}
+            {lawyer.rating !== undefined && (
+              <div>
+                <p className="text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1">Rating</p>
+                <div className="flex items-center gap-2">
+                  <div className="flex gap-0.5">
+                    {[...Array(5)].map((_, i) => (
+                      <svg
+                        key={i}
+                        className={`w-4 h-4 ${i < Math.round(lawyer.rating || 0) ? 'text-yellow-400 fill-current' : 'text-gray-300'}`}
+                        viewBox="0 0 24 24"
+                      >
+                        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                      </svg>
+                    ))}
+                  </div>
+                  {lawyer.reviewCount && <span className="text-sm text-gray-600">({lawyer.reviewCount} reviews)</span>}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       <div className="px-6 pb-6 pt-2 flex gap-3">
@@ -578,7 +627,7 @@ function ResultsPageContent() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-red-50/30">
-      <section className="relative overflow-hidden px-4 sm:px-6 pt-12 pb-8">
+      <section className="relative overflow-hidden px-4 sm:px-6 md:px-8 pt-12 pb-8 md:pt-16 md:pb-12">
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
           <div className="absolute -top-40 -right-40 w-96 h-96 bg-red-100 rounded-full opacity-50 blur-3xl" />
           <div className="absolute -bottom-20 -left-20 w-72 h-72 bg-rose-100 rounded-full opacity-50 blur-3xl" />
@@ -587,7 +636,7 @@ function ResultsPageContent() {
         <div className="max-w-7xl mx-auto relative">
           <Link
             href="/form"
-            className="inline-flex items-center gap-2 text-gray-600 hover:text-red-600 transition-colors mb-8 group"
+            className="inline-flex items-center gap-2 text-gray-600 hover:text-red-600 transition-colors mb-8 md:mb-12 group text-sm md:text-base"
           >
             <svg className="w-5 h-5 group-hover:-translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
@@ -595,16 +644,16 @@ function ResultsPageContent() {
             <span className="font-medium">New Search</span>
           </Link>
 
-          <div className="text-center mb-8">
-            <div className="inline-block mb-4">
-              <span className="bg-red-100 text-red-700 text-sm font-semibold px-4 py-2 rounded-full">
+          <div className="text-center mb-8 md:mb-12">
+            <div className="inline-block mb-4 md:mb-6">
+              <span className="bg-red-100 text-red-700 text-xs md:text-sm font-semibold px-4 py-2 md:py-3 rounded-full">
                 {allLawyers.length} Law Firm{allLawyers.length !== 1 ? 's' : ''} Found
               </span>
             </div>
-            <h1 className="text-4xl sm:text-5xl font-bold text-gray-900 mb-4">
+            <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-gray-900 mb-4 md:mb-6">
               Your Legal <span className="text-transparent bg-clip-text bg-gradient-to-r from-red-500 to-rose-500">Matches</span>
             </h1>
-            <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+            <p className="text-base sm:text-lg md:text-xl text-gray-600 max-w-2xl mx-auto leading-relaxed">
               {results?.selectedPracticeAreas?.length ? (
                 <>
                   Law firms specializing in <span className="font-semibold text-red-600">{results.selectedPracticeAreas.join(', ')}</span>
@@ -618,45 +667,45 @@ function ResultsPageContent() {
             </p>
           </div>
 
-          <div className="max-w-3xl mx-auto bg-white rounded-2xl shadow-lg p-6 border border-gray-100">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+          <div className="max-w-3xl mx-auto bg-white rounded-2xl shadow-lg p-5 md:p-8 border border-gray-100">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 text-center">
               <div>
-                <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Location</p>
-                <p className="font-semibold text-gray-900">{results?.lga || 'All'}, {results?.state}</p>
+                <p className="text-xs md:text-sm text-gray-500 uppercase tracking-wider mb-1 md:mb-2">Location</p>
+                <p className="font-semibold text-sm md:text-base text-gray-900">{results?.lga || 'All'}, {results?.state}</p>
               </div>
               <div>
-                <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Practice Area</p>
-                <p className="font-semibold text-gray-900">{results?.selectedPracticeAreas?.[0] || 'General'}</p>
+                <p className="text-xs md:text-sm text-gray-500 uppercase tracking-wider mb-1 md:mb-2">Practice Area</p>
+                <p className="font-semibold text-sm md:text-base text-gray-900">{results?.selectedPracticeAreas?.[0] || 'General'}</p>
               </div>
               <div>
-                <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Budget</p>
-                <p className="font-semibold text-gray-900">{results?.budget || 'Any'}</p>
+                <p className="text-xs md:text-sm text-gray-500 uppercase tracking-wider mb-1 md:mb-2">Budget</p>
+                <p className="font-semibold text-sm md:text-base text-gray-900">{results?.budget || 'Any'}</p>
               </div>
               <div>
-                <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Results</p>
-                <p className="font-semibold text-red-600">{allLawyers.length} Firms</p>
+                <p className="text-xs md:text-sm text-gray-500 uppercase tracking-wider mb-1 md:mb-2">Results</p>
+                <p className="font-semibold text-sm md:text-base text-red-600">{allLawyers.length} Firms</p>
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      <section className="px-4 sm:px-6 py-8 pb-20">
+      <section className="px-4 sm:px-6 md:px-8 py-8 md:py-12 pb-20 md:pb-24">
         <div className="max-w-7xl mx-auto">
           {allLawyers.length === 0 ? (
-            <div className="text-center py-20">
-              <div className="w-32 h-32 mx-auto mb-8 bg-gray-100 rounded-full flex items-center justify-center">
-                <svg className="w-16 h-16 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="text-center py-16 md:py-24">
+              <div className="w-24 md:w-32 h-24 md:h-32 mx-auto mb-6 md:mb-8 bg-gray-100 rounded-full flex items-center justify-center">
+                <svg className="w-12 md:w-16 h-12 md:h-16 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                 </svg>
               </div>
-              <h3 className="text-2xl font-bold text-gray-900 mb-3">No Law Firms Found</h3>
-              <p className="text-gray-600 mb-8 max-w-md mx-auto">
+              <h3 className="text-xl md:text-2xl font-bold text-gray-900 mb-3 md:mb-4">No Law Firms Found</h3>
+              <p className="text-gray-600 mb-6 md:mb-8 max-w-md mx-auto text-sm md:text-base">
                 We couldn't find law firms matching your criteria. Try adjusting your search or explore other locations.
               </p>
               <Link
                 href="/form"
-                className="inline-flex items-center gap-2 bg-gradient-to-r from-red-500 to-rose-500 text-white px-8 py-4 rounded-xl font-semibold hover:from-red-600 hover:to-rose-600 transition-all shadow-lg"
+                className="inline-flex items-center gap-2 bg-gradient-to-r from-red-500 to-rose-500 text-white px-6 md:px-8 py-3 md:py-4 rounded-xl font-semibold hover:from-red-600 hover:to-rose-600 transition-all shadow-lg text-sm md:text-base"
               >
                 Try Another Search
               </Link>

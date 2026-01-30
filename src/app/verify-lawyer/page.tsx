@@ -5,14 +5,15 @@ import Link from 'next/link';
 import Image from 'next/image';
 
 interface LawyerDetails {
-  name: string;
+  fullName: string;
+  scn: string;
   enrollmentNumber?: string;
   yearOfCall?: string;
   branch?: string;
   state?: string;
   status?: string;
-  type?: string;
   source?: string;
+  sanStatus?: boolean;
 }
 
 interface SearchResult {
@@ -36,9 +37,9 @@ export default function VerifyLawyerPage() {
     setSearched(true);
 
     try {
-      // Add a 15-second timeout for mobile users
+      // Add a 30-second timeout to allow Puppeteer browser startup + search (typically 20-21 seconds)
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 15000);
+      const timeoutId = setTimeout(() => controller.abort(), 30000);
 
       const response = await fetch('/api/verify-lawyer', {
         method: 'POST',
@@ -70,7 +71,7 @@ export default function VerifyLawyerPage() {
         found: false,
         lawyerName: lawyerName,
         message: isTimeout 
-          ? 'Search took too long. Please try again or visit the NBA website directly.'
+          ? 'Search is taking longer than expected. The NBA database search can take up to 30 seconds. Please try again or visit the NBA website directly.'
           : 'An error occurred while searching. Please try again.',
         lawyers: [],
         totalCount: 0,
@@ -88,24 +89,24 @@ export default function VerifyLawyerPage() {
         <div className="max-w-7xl mx-auto">
           <div className="flex flex-col lg:flex-row items-center">
             {/* Text Content */}
-            <div className="flex-1 px-6 sm:px-10 lg:px-16 py-12 lg:py-16 z-10">
+            <div className="flex-1 px-4 sm:px-6 md:px-10 lg:px-16 py-10 sm:py-12 md:py-16 z-10">
               <div className="max-w-xl">
                 {/* Badge */}
-                <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm rounded-full px-4 py-2 mb-6">
-                  <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm rounded-full px-3 sm:px-4 py-2 md:py-3 mb-4 md:mb-6">
+                  <svg className="w-4 sm:w-5 h-4 sm:h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                   </svg>
-                  <span className="text-white text-sm font-medium">NBA Verified Database</span>
+                  <span className="text-white text-xs md:text-sm font-medium">NBA Verified Database</span>
                 </div>
                 
                 {/* Heading */}
-                <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white font-[family-name:var(--font-playfair)] leading-tight mb-4">
+                <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-white font-[family-name:var(--font-playfair)] leading-tight mb-4 md:mb-6">
                   Verify Lawyer<br />
                   <span className="text-red-200">Credentials</span>
                 </h1>
                 
                 {/* Description */}
-                <p className="text-lg text-red-100 font-[family-name:var(--font-poppins)] mb-8 leading-relaxed">
+                <p className="text-base sm:text-lg md:text-xl text-red-100 font-[family-name:var(--font-poppins)] mb-6 md:mb-8 leading-relaxed">
                   Instantly verify any Nigerian lawyer's registration status with the Nigerian Bar Association. Protect yourself from fraudulent practitioners.
                 </p>
                 
@@ -119,12 +120,12 @@ export default function VerifyLawyerPage() {
                       placeholder="Enter lawyer's name or enrollment number"
                       required
                       disabled={loading}
-                      className="w-full px-5 py-4 pr-14 bg-white rounded-2xl font-[family-name:var(--font-poppins)] text-gray-900 placeholder-gray-500 text-base shadow-lg focus:outline-none focus:ring-4 focus:ring-white/30 transition disabled:opacity-70"
+                      className="w-full px-4 md:px-6 py-3 md:py-4 pr-12 md:pr-14 bg-white rounded-2xl font-[family-name:var(--font-poppins)] text-gray-900 placeholder-gray-500 text-sm md:text-base shadow-lg focus:outline-none focus:ring-4 focus:ring-white/30 transition disabled:opacity-70"
                     />
                     <button
                       type="submit"
                       disabled={loading}
-                      className="absolute right-2 top-1/2 -translate-y-1/2 p-3 bg-red-600 hover:bg-red-700 text-white rounded-xl transition disabled:opacity-50"
+                      className="absolute right-2 md:right-3 top-1/2 -translate-y-1/2 p-2 md:p-3 bg-red-600 hover:bg-red-700 text-white rounded-xl transition disabled:opacity-50"
                     >
                       {loading ? (
                         <svg className="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
@@ -141,10 +142,10 @@ export default function VerifyLawyerPage() {
                 </form>
                 
                 {/* Trust Indicators */}
-                <div className="flex items-center gap-6 mt-8">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 md:gap-6 mt-8 md:mt-10">
                   <div className="flex items-center gap-2">
                     <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-                    <span className="text-red-100 text-sm">Live Database</span>
+                    <span className="text-red-100 text-xs md:text-sm">Live Database</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <svg className="w-4 h-4 text-red-200" fill="currentColor" viewBox="0 0 20 20">
@@ -226,39 +227,40 @@ export default function VerifyLawyerPage() {
             {searchResults.found && searchResults.lawyers.length > 0 && (
               <div className="space-y-4">
                 {searchResults.lawyers.map((lawyer, index) => (
-                  <div key={lawyer.enrollmentNumber || index} className="p-5 bg-gradient-to-r from-green-50 to-emerald-50 rounded-2xl border border-green-200">
+                  <div key={lawyer.scn || index} className="p-5 bg-gradient-to-r from-green-50 to-emerald-50 rounded-2xl border border-green-200">
                     <div className="flex items-center justify-between mb-3">
                       <h4 className="text-base font-bold text-green-900 font-[family-name:var(--font-playfair)]">
                         {searchResults.lawyers.length > 1 ? `Lawyer #${index + 1}` : 'Verified Lawyer'}
                       </h4>
-                      {lawyer.type && (
-                        <span className={`text-xs px-3 py-1.5 rounded-full font-semibold ${
-                          lawyer.type.includes('SAN') 
-                            ? 'bg-yellow-100 text-yellow-800 border border-yellow-300' 
-                            : 'bg-green-100 text-green-800 border border-green-300'
-                        }`}>
-                          {lawyer.type.includes('SAN') ? '⭐ Senior Advocate' : '✓ Legal Practitioner'}
+                      {lawyer.sanStatus && (
+                        <span className="text-xs px-3 py-1.5 rounded-full font-semibold bg-yellow-100 text-yellow-800 border border-yellow-300">
+                          ⭐ Senior Advocate (SAN)
+                        </span>
+                      )}
+                      {!lawyer.sanStatus && (
+                        <span className="text-xs px-3 py-1.5 rounded-full font-semibold bg-green-100 text-green-800 border border-green-300">
+                          ✓ Legal Practitioner
                         </span>
                       )}
                     </div>
-                    <div className="grid sm:grid-cols-2 gap-3 text-sm text-green-800 font-[family-name:var(--font-poppins)]">
-                      {lawyer.name && (
-                        <p><span className="font-semibold text-green-900">Name:</span> {lawyer.name}</p>
+                    <div className="grid sm:grid-cols-2 gap-4 text-sm text-green-800 font-[family-name:var(--font-poppins)]">
+                      {lawyer.fullName && (
+                        <div className="sm:col-span-2">
+                          <p className="font-semibold text-green-900 mb-1">Full Name</p>
+                          <p className="text-base text-green-900 font-medium">{lawyer.fullName}</p>
+                        </div>
                       )}
-                      {lawyer.enrollmentNumber && (
-                        <p><span className="font-semibold text-green-900">SCN:</span> {lawyer.enrollmentNumber}</p>
-                      )}
-                      {lawyer.yearOfCall && (
-                        <p><span className="font-semibold text-green-900">Year of Call:</span> {lawyer.yearOfCall}</p>
-                      )}
-                      {lawyer.branch && (
-                        <p><span className="font-semibold text-green-900">Branch:</span> {lawyer.branch}</p>
-                      )}
-                      {lawyer.state && (
-                        <p><span className="font-semibold text-green-900">State:</span> {lawyer.state}</p>
+                      {lawyer.scn && (
+                        <div>
+                          <p className="font-semibold text-green-900 mb-1">Supreme Court Number (SCN)</p>
+                          <p className="text-base text-green-700 font-mono">{lawyer.scn}</p>
+                        </div>
                       )}
                       {lawyer.status && (
-                        <p><span className="font-semibold text-green-900">Status:</span> {lawyer.status}</p>
+                        <div>
+                          <p className="font-semibold text-green-900 mb-1">Status</p>
+                          <p>{lawyer.status}</p>
+                        </div>
                       )}
                     </div>
                   </div>
@@ -267,7 +269,7 @@ export default function VerifyLawyerPage() {
                 {/* Source info */}
                 <div className="pt-4 border-t border-green-200 flex items-center justify-between">
                   <p className="text-sm text-green-600 font-[family-name:var(--font-poppins)]">
-                    <span className="font-semibold">Source:</span> Nigerian Bar Association
+                    <span className="font-semibold">Source:</span> Nigerian Bar Association (Live Database)
                   </p>
                   <a
                     href={searchResults.nbaLink}

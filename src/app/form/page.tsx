@@ -17,13 +17,12 @@ interface FormData {
 }
 
 const practiceAreas = [
-  'Employment Law',
-  'Family Law',
-  'Property Law',
-  'Corporate Law',
-  'Commercial Law',
-  'Dispute Resolution',
-  'Immigration Law',
+  'Labour/Industrial concerns',
+  'Family matters',
+  'Property matters',
+  'Corporate practice',
+  'Commercial/Business matters',
+  'Alternative dispute resolution',
   'Intellectual Property',
 ];
 
@@ -69,6 +68,14 @@ function FormPageContent() {
     }
   }, [currentStep, locationAttempted, formData.state, permissionStatus]);
 
+  // Monitor Step 4 to prevent auto-submission
+  useEffect(() => {
+    if (currentStep === 4) {
+      console.log('✓ Reached Step 4 (Review & Submit) - Waiting for user to click submit');
+      setLoading(false); // Ensure loading is false on Step 4
+    }
+  }, [currentStep]);
+
   const checkLocationPermission = async () => {
     try {
       if ('permissions' in navigator) {
@@ -105,16 +112,20 @@ function FormPageContent() {
   };
 
   const handleUseLocation = async () => {
+    console.log('handleUseLocation called');
     setGettingLocation(true);
     setError('');
     setLocationSuccess(false);
     setLocationAttempted(true);
 
     if (!navigator.geolocation) {
-      setError('Geolocation is not supported by your browser. Please try using a different browser.');
+      console.error('Geolocation not supported');
+      setError('Geolocation is not supported by your browser. Please try using a different browser. Try using Chrome, Safari, Firefox, or Edge.');
       setGettingLocation(false);
       return;
     }
+
+    console.log('Starting geolocation request...');
 
     // Optimized options for mobile: balance accuracy and speed
     const options = {
@@ -123,58 +134,90 @@ function FormPageContent() {
       maximumAge: 300000           // Cache results for 5 minutes
     };
 
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        try {
-          const { latitude, longitude } = position.coords;
-          const locationMatch = determineLocationFromCoordinates({
-            latitude,
-            longitude,
-          });
+    try {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          console.log('✓ Geolocation success, coords:', {lat: position.coords.latitude, lng: position.coords.longitude});
+          try {
+            const { latitude, longitude } = position.coords;
+            const locationMatch = determineLocationFromCoordinates({
+              latitude,
+              longitude,
+            });
 
-          if (locationMatch) {
-            setFormData((prev) => ({
-              ...prev,
-              state: locationMatch.state,
-              lga: locationMatch.lga,
-            }));
-            setLocationSuccess(true);
-            setError('');
-          } else {
-            setError('Could not determine your location within Nigeria. Please ensure you are in Nigeria and try again.');
+            if (locationMatch) {
+              console.log('✓ Location matched:', locationMatch);
+              setFormData((prev) => ({
+                ...prev,
+                state: locationMatch.state,
+                lga: locationMatch.lga,
+              }));
+              setLocationSuccess(true);
+              setError('');
+              setShowLocationModal(false); // Close modal after successful location detection
+            } else {
+              console.warn('Location coordinates not in Nigeria');
+              setError('Could not determine your location within Nigeria. Please ensure you are in Nigeria and try again.');
+              setShowManualLocation(true);
+            }
+          } catch (err) {
+            console.error('Error processing location data:', err);
+            setError('Error processing location data. Please try again.');
+            console.error('Location error:', err);
             setShowManualLocation(true);
           }
-        } catch (err) {
-          setError('Error processing location data. Please try again.');
-          console.error('Location error:', err);
+          setGettingLocation(false);
+        },
+        (error) => {
+          console.error('❌ Geolocation error code:', error.code, 'message:', error.message);
+          setGettingLocation(false);
           setShowManualLocation(true);
-        }
-        setGettingLocation(false);
-      },
-      (error) => {
-        console.error('Geolocation error code:', error.code, 'message:', error.message);
-        setGettingLocation(false);
-        setShowManualLocation(true);
-        setLocationAttempted(true);
+          setLocationAttempted(true);
 
-        if (error.code === 1) {
-          setError('Location permission denied. Please enable location access in your settings and try again.');
-        } else if (error.code === 2) {
-          setError('Unable to retrieve your location. Please try again or use manual selection.');
-        } else if (error.code === 3) {
-          setError('Location request timed out. Please try again or use manual selection.');
-        } else {
-          setError('Unable to access your location. Please use manual selection instead.');
-        }
-      },
-      options
-    );
+          if (error.code === 1) {
+            console.log('Error 1: Permission Denied');
+            setError('❌ Location Permission Denied. To fix: Go to your browser settings, find this site in the permissions list, and allow location access. Then reload and try again.');
+          } else if (error.code === 2) {
+            console.log('Error 2: Position Unavailable');
+            setError('❌ Location Service Not Available. This usually means: (1) Location services are disabled on your device, or (2) You\'re in an area without GPS/WiFi signal. Please use manual location selection below, or enable location services in your system settings.');
+          } else if (error.code === 3) {
+            console.log('Error 3: Timeout');
+            setError('❌ Location Request Timed Out (took too long). Please check your internet connection and try again, or use manual selection below.');
+          } else {
+            console.log('Error: Unknown code', error.code);
+            setError('❌ Unable to Access Your Location. Please use the manual location selection below, or reload the page and try again.');
+          }
+        },
+        options
+      );
+    } catch (outerErr) {
+      console.error('Outer error in geolocation request:', outerErr);
+      setError('An unexpected error occurred while requesting location. Please try manual selection instead.');
+      setGettingLocation(false);
+      setShowManualLocation(true);
+    }
   };
 
   const progressPercentage = (currentStep / 4) * 100;
 
   const handleSubmit = async (e: React.FormEvent) => {
+    console.log('🔴 Form onSubmit handler triggered - currentStep:', currentStep);
     e.preventDefault();
+    e.stopPropagation();
+    
+    // Only allow submission from Step 4 (Review & Submit)
+    if (currentStep !== 4) {
+      console.error('❌ BLOCKED: Attempted submission from Step', currentStep, '- Only Step 4 is allowed');
+      return;
+    }
+    
+    // Check if already loading to prevent duplicate submissions
+    if (loading) {
+      console.warn('⚠️ Already loading - preventing duplicate submission attempt');
+      return;
+    }
+
+    console.log('✅ Valid submission from Step 4 - proceeding with API call');
     setLoading(true);
 
     try {
@@ -207,7 +250,16 @@ function FormPageContent() {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="min-h-screen bg-white">
+    <form onSubmit={handleSubmit} className="min-h-screen bg-white" onKeyDown={(e) => {
+      // Prevent accidental form submission via Enter key
+      if (e.key === 'Enter') {
+        if (currentStep !== 4) {
+          e.preventDefault();
+          e.stopPropagation();
+          console.warn('Enter key pressed outside review step - submission prevented');
+        }
+      }
+    }}>
       {/* Location Modal */}
       {showLocationModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -221,13 +273,16 @@ function FormPageContent() {
 
             <button
               type="button"
-              onClick={() => {
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('Allow Location Access button clicked');
                 handleUseLocation();
-                setShowLocationModal(false);
               }}
-              className="w-full px-6 py-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition-all duration-300 font-[family-name:var(--font-poppins)]"
+              disabled={gettingLocation}
+              className="w-full px-6 py-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition-all duration-300 font-[family-name:var(--font-poppins)] disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              ✓ Allow Location Access
+              {gettingLocation ? '⏳ Detecting Location...' : '✓ Allow Location Access'}
             </button>
             <button
               type="button"
@@ -244,20 +299,20 @@ function FormPageContent() {
       )}
 
       {/* Fluid Header */}
-      <section className="relative overflow-hidden px-4 sm:px-6 py-12 sm:py-16">
-        <div className="max-w-4xl mx-auto">
-          <div className="inline-block mb-4">
-            <div className="text-sm font-semibold text-red-600 bg-red-100 px-4 py-2 rounded-full font-[family-name:var(--font-poppins)]">
+      <section className="relative overflow-hidden px-4 sm:px-6 md:px-8 py-12 sm:py-16 md:py-20">
+        <div className="max-w-5xl mx-auto">
+          <div className="inline-block mb-4 md:mb-6">
+            <div className="text-xs sm:text-sm md:text-base font-semibold text-red-600 bg-red-100 px-4 py-2 rounded-full font-[family-name:var(--font-poppins)]">
               Step {currentStep} of 4
             </div>
           </div>
-          <h1 className="text-4xl sm:text-5xl font-bold font-[family-name:var(--font-playfair)] text-gray-900 mb-4 italic">
+          <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold font-[family-name:var(--font-playfair)] text-gray-900 mb-4 md:mb-6 italic">
             {currentStep === 1 && "What's your legal need?"}
             {currentStep === 2 && "Where are you located?"}
             {currentStep === 3 && "What's your budget?"}
             {currentStep === 4 && "Review & Submit"}
           </h1>
-          <p className="text-lg text-gray-600 font-[family-name:var(--font-poppins)] max-w-2xl">
+          <p className="text-base sm:text-lg md:text-xl text-gray-600 font-[family-name:var(--font-poppins)] max-w-2xl leading-relaxed">
             {currentStep === 1 && "Help us understand your legal situation so we can find the perfect match."}
             {currentStep === 2 && "We connect you with lawyers across all of Nigeria—tell us where you're based."}
             {currentStep === 3 && "Let's make sure we find lawyers within your budget range."}
@@ -266,8 +321,8 @@ function FormPageContent() {
         </div>
 
         {/* Progress Bar */}
-        <div className="max-w-4xl mx-auto mt-10">
-          <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+        <div className="max-w-5xl mx-auto mt-10 md:mt-12">
+          <div className="h-2 md:h-3 bg-gray-200 rounded-full overflow-hidden">
             <div 
               className="h-full bg-gradient-to-r from-red-500 to-red-600 transition-all duration-500 ease-out"
               style={{ width: `${progressPercentage}%` }}
@@ -277,8 +332,8 @@ function FormPageContent() {
       </section>
 
       {/* Form Container */}
-      <section className="relative overflow-hidden px-4 sm:px-6 py-12">
-        <div className="max-w-4xl mx-auto">
+      <section className="relative overflow-hidden px-4 sm:px-6 md:px-8 py-12 md:py-16">
+        <div className="max-w-5xl mx-auto">
           {/* Error Message */}
           {error && (
             <div className="mb-6 p-4 bg-red-50 border-2 border-red-300 rounded-xl">
@@ -290,11 +345,11 @@ function FormPageContent() {
           {currentStep === 1 && (
             <div className="space-y-6 animate-fadeIn">
               <div>
-                <h2 className="text-2xl font-bold font-[family-name:var(--font-playfair)] text-gray-900 mb-2">Practice Areas</h2>
-                <p className="text-gray-600 font-[family-name:var(--font-poppins)]">Select one or multiple areas that match your need:</p>
+                <h2 className="text-2xl md:text-3xl font-bold font-[family-name:var(--font-playfair)] text-gray-900 mb-2 md:mb-3">Legal Area of Concern</h2>
+                <p className="text-base md:text-lg text-gray-600 font-[family-name:var(--font-poppins)]">Select one or multiple areas that match your need:</p>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 md:gap-4">
                 {practiceAreas.map((area) => (
                   <label
                     key={area}
@@ -306,12 +361,12 @@ function FormPageContent() {
                       onChange={() => handlePracticeAreaChange(area)}
                       className="sr-only"
                     />
-                    <div className={`p-4 rounded-xl border-2 transition-all duration-300 ${
+                    <div className={`p-4 md:p-5 rounded-xl border-2 transition-all duration-300 ${
                       formData.practiceAreas.includes(area)
                         ? 'border-red-500 bg-red-50'
                         : 'border-gray-300 bg-white group-hover:border-red-300'
                     }`}>
-                      <p className="font-semibold text-gray-900 font-[family-name:var(--font-poppins)]">
+                      <p className="font-semibold text-gray-900 text-sm md:text-base font-[family-name:var(--font-poppins)]">
                         {formData.practiceAreas.includes(area) ? '✓ ' : ''}{area}
                       </p>
                     </div>
@@ -321,8 +376,8 @@ function FormPageContent() {
 
               {/* Practice Area Description */}
               {formData.practiceAreas.length > 0 && (
-                <div className="p-4 bg-blue-50 border border-blue-200 rounded-xl">
-                  <p className="text-blue-700 font-semibold font-[family-name:var(--font-poppins)]">
+                <div className="p-4 md:p-5 bg-blue-50 border border-blue-200 rounded-xl">
+                  <p className="text-blue-700 font-semibold text-sm md:text-base font-[family-name:var(--font-poppins)]">
                     {formData.practiceAreas.length} area{formData.practiceAreas.length !== 1 ? 's' : ''} selected
                   </p>
                 </div>
@@ -330,7 +385,7 @@ function FormPageContent() {
 
               {/* Legal Issue Textarea */}
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2 font-[family-name:var(--font-poppins)]">
+                <label className="block text-xs sm:text-sm md:text-base font-semibold text-gray-700 mb-2 md:mb-3 font-[family-name:var(--font-poppins)]">
                   Describe Your Legal Issue
                 </label>
                 <textarea
@@ -338,7 +393,7 @@ function FormPageContent() {
                   value={formData.legalIssue}
                   onChange={handleInputChange}
                   placeholder="e.g., My employer has not paid my salary for 3 months..."
-                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl font-[family-name:var(--font-poppins)] focus:border-red-500 focus:outline-none transition-all duration-300"
+                  className="w-full px-4 md:px-5 py-3 md:py-4 border-2 border-gray-700 rounded-xl font-[family-name:var(--font-poppins)] bg-white text-black placeholder-gray-500 focus:border-red-600 focus:ring-2 focus:ring-red-200 focus:outline-none transition-all duration-300 shadow-md hover:border-gray-800 text-sm md:text-base"
                   rows={5}
                 />
               </div>
@@ -349,10 +404,10 @@ function FormPageContent() {
           {currentStep === 2 && (
             <div className="space-y-6 animate-fadeIn">
               <div>
-                <h2 className="text-2xl font-bold font-[family-name:var(--font-playfair)] text-gray-900 mb-2">
+                <h2 className="text-2xl md:text-3xl font-bold font-[family-name:var(--font-playfair)] text-gray-900 mb-2 md:mb-3">
                   {showManualLocation ? 'Select Your Location' : 'Detecting Your Location'}
                 </h2>
-                <p className="text-gray-600 font-[family-name:var(--font-poppins)]">
+                <p className="text-base md:text-lg text-gray-600 font-[family-name:var(--font-poppins)]">
                   {showManualLocation 
                     ? 'Choose your state and local government area manually.'
                     : 'We use your current location to find lawyers near you.'}
@@ -361,10 +416,10 @@ function FormPageContent() {
 
               {/* Manual Location Selection */}
               {showManualLocation && !gettingLocation ? (
-                <div className="space-y-4">
+                <div className="space-y-4 md:space-y-5">
                   {/* State Selection */}
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2 font-[family-name:var(--font-poppins)]">
+                    <label className="block text-xs sm:text-sm md:text-base font-semibold text-gray-700 mb-2 md:mb-3 font-[family-name:var(--font-poppins)]">
                       State
                     </label>
                     <select
@@ -378,7 +433,7 @@ function FormPageContent() {
                         }));
                         setError('');
                       }}
-                      className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl font-[family-name:var(--font-poppins)] focus:border-red-500 focus:outline-none transition-all duration-300"
+                      className="w-full px-4 md:px-5 py-3 md:py-4 border-2 border-gray-700 rounded-xl font-[family-name:var(--font-poppins)] bg-white text-black focus:border-red-600 focus:ring-2 focus:ring-red-200 focus:outline-none transition-all duration-300 shadow-md hover:border-gray-800 cursor-pointer text-sm md:text-base"
                     >
                       <option value="">Select a state...</option>
                       {nigerianStates.map((state) => (
@@ -390,7 +445,7 @@ function FormPageContent() {
                   {/* LGA Selection */}
                   {formData.state && (
                     <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-2 font-[family-name:var(--font-poppins)]">
+                      <label className="block text-xs sm:text-sm md:text-base font-semibold text-gray-700 mb-2 md:mb-3 font-[family-name:var(--font-poppins)]">
                         Local Government Area (LGA)
                       </label>
                       <select
@@ -406,7 +461,7 @@ function FormPageContent() {
                           }
                           setError('');
                         }}
-                        className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl font-[family-name:var(--font-poppins)] focus:border-red-500 focus:outline-none transition-all duration-300"
+                        className="w-full px-4 md:px-5 py-3 md:py-4 border-2 border-gray-700 rounded-xl font-[family-name:var(--font-poppins)] bg-white text-black focus:border-red-600 focus:ring-2 focus:ring-red-200 focus:outline-none transition-all duration-300 shadow-md hover:border-gray-800 cursor-pointer text-sm md:text-base"
                       >
                         <option value="">Select an LGA...</option>
                         {nigerianLGAData[formData.state]?.lgas.map((lga) => (
@@ -418,15 +473,15 @@ function FormPageContent() {
 
                   {/* Success indicator */}
                   {locationSuccess && formData.state && formData.lga && (
-                    <div className="p-4 bg-green-50 border border-green-200 rounded-xl text-center">
-                      <p className="text-green-700 font-semibold font-[family-name:var(--font-poppins)]">
+                    <div className="p-4 md:p-5 bg-green-50 border border-green-200 rounded-xl text-center">
+                      <p className="text-green-700 font-semibold text-sm md:text-base font-[family-name:var(--font-poppins)]">
                         ✓ Location set: {formData.lga}, {formData.state}
                       </p>
                     </div>
                   )}
 
                   {/* Switch back to auto-detect */}
-                  <div className="text-center pt-4">
+                  <div className="text-center pt-4 md:pt-6">
                     <button
                       type="button"
                       onClick={() => {
@@ -434,7 +489,7 @@ function FormPageContent() {
                         setLocationAttempted(false);
                         setError('');
                       }}
-                      className="text-blue-600 hover:text-blue-800 font-semibold text-sm font-[family-name:var(--font-poppins)]"
+                      className="text-blue-600 hover:text-blue-800 font-semibold text-xs sm:text-sm md:text-base font-[family-name:var(--font-poppins)]"
                     >
                       ← Try automatic location detection
                     </button>
@@ -443,7 +498,7 @@ function FormPageContent() {
               ) : !showManualLocation ? (
                 /* Auto Location Detection */
                 <>
-                  <div className={`p-8 rounded-3xl border-2 transition-all duration-500 ${
+                  <div className={`p-6 md:p-8 rounded-3xl border-2 transition-all duration-500 ${
                     locationSuccess 
                       ? 'bg-green-50 border-green-300' 
                       : gettingLocation 
@@ -487,11 +542,11 @@ function FormPageContent() {
           {currentStep === 3 && (
             <div className="space-y-6 animate-fadeIn">
               <div>
-                <h2 className="text-2xl font-bold font-[family-name:var(--font-playfair)] text-gray-900 mb-2">Budget Range</h2>
-                <p className="text-gray-600 font-[family-name:var(--font-poppins)]">What's your budget for legal consultation?</p>
+                <h2 className="text-2xl md:text-3xl font-bold font-[family-name:var(--font-playfair)] text-gray-900 mb-2 md:mb-3">Budget Range</h2>
+                <p className="text-base md:text-lg text-gray-600 font-[family-name:var(--font-poppins)]">What's your budget for legal consultation?</p>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 gap-3 md:gap-4">
                 {[
                   { value: 'under-50k', label: 'Under ₦50,000' },
                   { value: '50k-100k', label: '₦50,000 - ₦100,000' },
@@ -510,12 +565,12 @@ function FormPageContent() {
                       onChange={handleInputChange}
                       className="sr-only"
                     />
-                    <div className={`p-4 rounded-xl border-2 transition-all duration-300 ${
+                    <div className={`p-4 md:p-5 rounded-xl border-2 transition-all duration-300 ${
                       formData.budget === option.value
                         ? 'border-red-500 bg-red-50'
                         : 'border-gray-300 bg-white group-hover:border-red-300'
                     }`}>
-                      <p className="font-semibold text-gray-900 font-[family-name:var(--font-poppins)]">
+                      <p className="font-semibold text-gray-900 text-sm md:text-base font-[family-name:var(--font-poppins)]">
                         {formData.budget === option.value ? '✓ ' : ''}{option.label}
                       </p>
                     </div>
@@ -579,12 +634,12 @@ function FormPageContent() {
           )}
 
           {/* Navigation Buttons */}
-          <div className="flex justify-between mt-12">
+          <div className="flex flex-col sm:flex-row justify-between gap-4 md:gap-6 mt-12 md:mt-16">
             <button
               type="button"
               onClick={() => setCurrentStep(Math.max(1, currentStep - 1))}
               disabled={currentStep === 1}
-              className={`px-8 py-3 font-bold rounded-xl transition-all duration-300 font-[family-name:var(--font-poppins)] ${
+              className={`px-6 sm:px-8 py-3 md:py-4 font-bold rounded-xl transition-all duration-300 font-[family-name:var(--font-poppins)] text-sm md:text-base ${
                 currentStep === 1
                   ? 'text-gray-400 cursor-not-allowed'
                   : 'text-gray-700 hover:bg-gray-200'
@@ -612,7 +667,7 @@ function FormPageContent() {
                   setError('');
                   setCurrentStep(currentStep + 1);
                 }}
-                className="px-8 py-3 bg-gradient-to-r from-red-500 to-red-600 text-white font-bold rounded-xl hover:shadow-lg transition-all duration-300 font-[family-name:var(--font-poppins)]"
+                className="px-6 sm:px-8 py-3 md:py-4 bg-gradient-to-r from-red-500 to-red-600 text-white font-bold rounded-xl hover:shadow-lg transition-all duration-300 font-[family-name:var(--font-poppins)] text-sm md:text-base"
               >
                 Next →
               </button>
@@ -620,7 +675,19 @@ function FormPageContent() {
               <button
                 type="submit"
                 disabled={loading}
-                className="px-8 py-3 bg-gradient-to-r from-red-500 to-red-600 text-white font-bold rounded-xl hover:shadow-lg transition-all duration-300 font-[family-name:var(--font-poppins)] disabled:opacity-50 disabled:cursor-not-allowed"
+                onClick={(e) => {
+                  console.log('✓ Submit button clicked explicitly by user - currentStep:', currentStep, 'loading:', loading);
+                  if (loading) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                  }
+                  if (currentStep !== 4) {
+                    console.error('ERROR: Submit button clicked from Step', currentStep, '- blocking submission');
+                    e.preventDefault();
+                    e.stopPropagation();
+                  }
+                }}
+                className="px-6 sm:px-8 py-3 md:py-4 bg-gradient-to-r from-red-500 to-red-600 text-white font-bold rounded-xl hover:shadow-lg transition-all duration-300 font-[family-name:var(--font-poppins)] disabled:opacity-50 disabled:cursor-not-allowed text-sm md:text-base"
               >
                 {loading ? 'Submitting...' : '✓ Submit & Find Lawyers'}
               </button>
